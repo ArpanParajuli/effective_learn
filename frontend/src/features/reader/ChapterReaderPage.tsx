@@ -33,7 +33,6 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { toast } from 'sonner'
@@ -629,23 +628,24 @@ export function ChapterReaderPage() {
 
       <article className={`${widthClass} mx-auto space-y-8 py-4 ${tintClass}`}>
         {/* Top Navigation & Controls Bar */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border pb-4 gap-2 flex-wrap">
+        <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border pb-3.5 gap-2">
           <Breadcrumb className="min-w-0">
-            <BreadcrumbList>
+            <BreadcrumbList className="flex-nowrap">
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/">Library</Link>
+                  <Link to="/" className="hover:text-foreground transition-colors">Library</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
-              <BreadcrumbItem>
+              <BreadcrumbItem className="min-w-0">
                 <BreadcrumbLink asChild>
-                  <Link to={`/subjects/${chapter.subjectId}`}>{chapter.subjectTitle || 'Subject'}</Link>
+                  <Link
+                    to={`/subjects/${chapter.subjectId}`}
+                    className="hover:text-foreground transition-colors truncate max-w-[140px] sm:max-w-[220px] block"
+                  >
+                    {chapter.subjectTitle || 'Subject'}
+                  </Link>
                 </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="max-w-[140px] sm:max-w-xs truncate">{chapter.title}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -705,12 +705,9 @@ export function ChapterReaderPage() {
                 Chapter {currentIndex + 1} of {chapters.length}
               </Badge>
             )}
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" /> {chapter.estimatedMinutes} min read
-            </span>
-            <span className="text-xs text-muted-foreground">•</span>
-            <span className="text-xs text-indigo-500 dark:text-indigo-400 font-mono">
-              ~{remainingMinutes}m left ({scrollProgress}%)
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5 ml-1">
+              <Clock className="h-3.5 w-3.5" />
+              {chapter.estimatedMinutes > 0 ? `${chapter.estimatedMinutes} min read` : '1 min read'}
             </span>
           </div>
 
