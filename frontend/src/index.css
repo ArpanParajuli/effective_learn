@@ -162,6 +162,30 @@ body {
   font-family: 'Lora', Georgia, Cambria, 'Times New Roman', serif;
 }
 
+/* Brain-Effective Reading Mode Styles */
+.reader-tint-sepia {
+  background-color: #fbf7ee !important;
+  color: #2c251d !important;
+}
+.dark .reader-tint-sepia {
+  background-color: #171512 !important;
+  color: #e0d6c8 !important;
+}
+
+.reader-tint-midnight {
+  background-color: #050508 !important;
+  color: #e2e2e8 !important;
+}
+
+/* Brain Focus Spotlight: gently dims non-hovered paragraphs to lock focus */
+.reader-focus-spotlight .typeset > * {
+  transition: opacity 0.2s ease;
+  opacity: 0.45;
+}
+.reader-focus-spotlight .typeset > *:hover {
+  opacity: 1;
+}
+
 /* Reader Typography Styles */
 .prose-reader {
   font-size: inherit;
