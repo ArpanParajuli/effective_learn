@@ -28,6 +28,10 @@ RUN dotnet publish src/EffectiveLearn.Api/EffectiveLearn.Api.csproj -c Release -
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Install curl for reliable health checks
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # Expose standard non-privileged port
 EXPOSE 8080
 ENV ASPNETCORE_HTTP_PORTS=8080
@@ -36,10 +40,10 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 # Copy published artifacts
 COPY --from=build /app/publish .
 
-# Run under the unprivileged 'app' user provided by .NET official image
+# Run under the unprivileged 'app' user
 USER app
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:8080/health/live || exit 1
+HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://127.0.0.1:8080/health/live || exit 1
 
 ENTRYPOINT ["dotnet", "EffectiveLearn.Api.dll"]

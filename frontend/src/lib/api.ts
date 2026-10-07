@@ -162,9 +162,11 @@ let localChapters = { ...fallbackChapters }
 export async function fetchSubjects(): Promise<Subject[]> {
   try {
     const res = await apiClient.get<Subject[]>('/subjects')
-    if (res.data && res.data.length > 0) return res.data
+    if (Array.isArray(res.data)) {
+      return res.data
+    }
   } catch {
-    // fallback
+    // fallback to local mock data if offline or starting up
   }
   return localSubjects
 }
@@ -172,50 +174,61 @@ export async function fetchSubjects(): Promise<Subject[]> {
 export async function createSubject(payload: CreateSubjectPayload): Promise<string> {
   try {
     const res = await apiClient.post<string>('/subjects', payload)
-    return res.data
-  } catch {
-    const newId = `s_${Date.now()}`
-    const subject: Subject = {
-      id: newId,
-      title: payload.title,
-      slug: payload.title.toLowerCase().replace(/\s+/g, '-'),
-      description: payload.description,
-      icon: payload.icon || 'BookOpen',
-      displayOrder: payload.displayOrder || localSubjects.length + 1,
-      chapterCount: 0,
-      createdAtUtc: new Date().toISOString(),
+    if (res.data && typeof res.data === 'string' && !res.data.includes('<')) {
+      return res.data.replace(/^"|"$/g, '')
     }
-    localSubjects = [...localSubjects, subject]
-    localChapters[newId] = []
-    return newId
+  } catch {
+    // fallback
   }
+
+  const newId = `s_${Date.now()}`
+  const subject: Subject = {
+    id: newId,
+    title: payload.title,
+    slug: payload.title.toLowerCase().replace(/\s+/g, '-'),
+    description: payload.description,
+    icon: payload.icon || 'BookOpen',
+    displayOrder: payload.displayOrder || localSubjects.length + 1,
+    chapterCount: 0,
+    createdAtUtc: new Date().toISOString(),
+  }
+  localSubjects = [...localSubjects, subject]
+  localChapters[newId] = []
+  return newId
 }
 
 export async function fetchChaptersBySubject(subjectId: string): Promise<ChapterSummary[]> {
   try {
     const res = await apiClient.get<ChapterSummary[]>(`/chapters/by-subject/${subjectId}`)
-    if (res.data && res.data.length > 0) return res.data
+    if (Array.isArray(res.data)) {
+      return res.data
+    }
   } catch {
     // fallback
   }
+
   const chapters = localChapters[subjectId] || []
-  return chapters.map((c) => ({
-    id: c.id,
-    subjectId: c.subjectId,
-    title: c.title,
-    slug: c.slug,
-    summary: c.summary,
-    orderIndex: c.orderIndex,
-    estimatedMinutes: c.estimatedMinutes,
-    isPublished: c.isPublished,
-    createdAtUtc: c.createdAtUtc,
-  }))
+  return Array.isArray(chapters)
+    ? chapters.map((c) => ({
+        id: c.id,
+        subjectId: c.subjectId,
+        title: c.title,
+        slug: c.slug,
+        summary: c.summary,
+        orderIndex: c.orderIndex,
+        estimatedMinutes: c.estimatedMinutes,
+        isPublished: c.isPublished,
+        createdAtUtc: c.createdAtUtc,
+      }))
+    : []
 }
 
 export async function fetchChapterById(chapterId: string): Promise<ChapterDetail> {
   try {
     const res = await apiClient.get<ChapterDetail>(`/chapters/${chapterId}`)
-    if (res.data) return res.data
+    if (res.data && typeof res.data === 'object' && !Array.isArray(res.data) && 'title' in res.data) {
+      return res.data
+    }
   } catch {
     // fallback
   }
@@ -230,52 +243,58 @@ export async function fetchChapterById(chapterId: string): Promise<ChapterDetail
 export async function createChapter(payload: CreateChapterPayload): Promise<string> {
   try {
     const res = await apiClient.post<string>('/chapters', payload)
-    return res.data
+    if (typeof res.data === 'string' && !res.data.includes('<')) {
+      return res.data
+    }
   } catch {
-    const newId = `c_${Date.now()}`
-    const subject = localSubjects.find((s) => s.id === payload.subjectId)
-    const chapter: ChapterDetail = {
-      id: newId,
-      subjectId: payload.subjectId,
-      subjectTitle: subject?.title || 'General',
-      title: payload.title,
-      slug: payload.title.toLowerCase().replace(/\s+/g, '-'),
-      summary: payload.summary,
-      content: payload.content,
-      orderIndex: payload.orderIndex || 1,
-      estimatedMinutes: payload.estimatedMinutes || 5,
-      isPublished: payload.isPublished ?? true,
-      createdAtUtc: new Date().toISOString(),
-    }
-    if (!localChapters[payload.subjectId]) {
-      localChapters[payload.subjectId] = []
-    }
-    localChapters[payload.subjectId].push(chapter)
-    if (subject) subject.chapterCount++
-    return newId
+    // fallback
   }
+
+  const newId = `c_${Date.now()}`
+  const subject = localSubjects.find((s) => s.id === payload.subjectId)
+  const chapter: ChapterDetail = {
+    id: newId,
+    subjectId: payload.subjectId,
+    subjectTitle: subject?.title || 'General',
+    title: payload.title,
+    slug: payload.title.toLowerCase().replace(/\s+/g, '-'),
+    summary: payload.summary,
+    content: payload.content,
+    orderIndex: payload.orderIndex || 1,
+    estimatedMinutes: payload.estimatedMinutes || 5,
+    isPublished: payload.isPublished ?? true,
+    createdAtUtc: new Date().toISOString(),
+  }
+  if (!localChapters[payload.subjectId]) {
+    localChapters[payload.subjectId] = []
+  }
+  localChapters[payload.subjectId].push(chapter)
+  if (subject) subject.chapterCount++
+  return newId
 }
 
 export async function updateChapter(payload: UpdateChapterPayload): Promise<void> {
   try {
     await apiClient.put(`/chapters/${payload.id}`, payload)
   } catch {
-    for (const subjectId in localChapters) {
-      const idx = localChapters[subjectId]?.findIndex((c) => c.id === payload.id)
-      if (idx !== undefined && idx >= 0) {
-        const existing = localChapters[subjectId][idx]
-        localChapters[subjectId][idx] = {
-          ...existing,
-          title: payload.title,
-          summary: payload.summary,
-          content: payload.content,
-          orderIndex: payload.orderIndex,
-          estimatedMinutes: payload.estimatedMinutes,
-          isPublished: payload.isPublished,
-          updatedAtUtc: new Date().toISOString(),
-        }
-        break
+    // fallback local update
+  }
+
+  for (const subjectId in localChapters) {
+    const idx = localChapters[subjectId]?.findIndex((c) => c.id === payload.id)
+    if (idx !== undefined && idx >= 0) {
+      const existing = localChapters[subjectId][idx]
+      localChapters[subjectId][idx] = {
+        ...existing,
+        title: payload.title,
+        summary: payload.summary,
+        content: payload.content,
+        orderIndex: payload.orderIndex,
+        estimatedMinutes: payload.estimatedMinutes,
+        isPublished: payload.isPublished,
+        updatedAtUtc: new Date().toISOString(),
       }
+      break
     }
   }
 }

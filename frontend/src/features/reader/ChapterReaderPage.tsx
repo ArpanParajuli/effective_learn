@@ -5,6 +5,7 @@ import { fetchChapterById } from '@/lib/api'
 import { RichContentRenderer } from '@/components/content/RichContentRenderer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 
 export function ChapterReaderPage() {
@@ -23,8 +24,30 @@ export function ChapterReaderPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-3xl mx-auto py-20 text-center text-sm text-slate-400">
-        Loading article and video lectures...
+      <div className="max-w-3xl mx-auto space-y-8 py-6">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+          <Skeleton className="h-4 w-32" />
+          <div className="flex gap-2">
+            <Skeleton className="h-7 w-16 rounded-md" />
+            <Skeleton className="h-7 w-16 rounded-md" />
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <Skeleton className="h-5 w-24 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+          <Skeleton className="h-10 w-4/5" />
+          <Skeleton className="h-20 w-full rounded-lg" />
+        </div>
+        <div className="space-y-3 pt-4">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-11/12" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-44 w-full rounded-xl mt-4" />
+          <Skeleton className="h-4 w-full mt-4" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
       </div>
     )
   }

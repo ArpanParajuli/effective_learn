@@ -55,13 +55,9 @@ var app = builder.Build();
 // 6. Global Exception Handling Middleware (RFC 7807)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// 7. HTTP Pipeline configuration
-if (app.Environment.IsDevelopment())
+// 7. Auto-setup database schema and seed sample data
+using (var scope = app.Services.CreateScope())
 {
-    app.MapOpenApi();
-
-    // Auto-migrate and seed in Development if database connection is available
-    using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
     try
     {
@@ -75,8 +71,14 @@ if (app.Environment.IsDevelopment())
     }
     catch (Exception ex)
     {
-        Log.Warning("Database auto-migration skipped or pending: {Message}", ex.Message);
+        Log.Error(ex, "Database migration failed: {Message}", ex.Message);
     }
+}
+
+// 8. HTTP Pipeline configuration
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
 }
 
 app.UseSerilogRequestLogging();
@@ -85,7 +87,7 @@ app.UseCors("EffectiveLearnPolicy");
 app.UseRouting();
 app.UseAuthorization();
 
-// 8. Health Check Probes
+// 9. Health Check Probes
 app.MapHealthChecks("/health/live");
 app.MapHealthChecks("/health/ready");
 

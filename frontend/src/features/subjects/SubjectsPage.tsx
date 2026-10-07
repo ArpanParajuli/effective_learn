@@ -1,12 +1,14 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, BookOpen, Layers, Server, Database, ChevronRight } from 'lucide-react'
+import { Plus, BookOpen, Layers, Server, Database, ChevronRight, Search, X } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchSubjects, createSubject } from '@/lib/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { toast } from 'sonner'
 
 export function SubjectsPage() {
@@ -14,11 +16,42 @@ export function SubjectsPage() {
   const [showModal, setShowModal] = React.useState(false)
   const [newTitle, setNewTitle] = React.useState('')
   const [newDescription, setNewDescription] = React.useState('')
+  const [searchQuery, setSearchQuery] = React.useState('')
+  const searchInputRef = React.useRef<HTMLInputElement>(null)
 
-  const { data: subjects = [], isLoading } = useQuery({
+  const { data: rawSubjects, isLoading } = useQuery({
     queryKey: ['subjects'],
     queryFn: fetchSubjects,
   })
+
+  const subjects = Array.isArray(rawSubjects) ? rawSubjects : []
+
+  // Filter subjects in real-time
+  const filteredSubjects = React.useMemo(() => {
+    if (!searchQuery.trim()) return subjects
+    const q = searchQuery.toLowerCase().trim()
+    return subjects.filter(
+      (s) =>
+        s.title.toLowerCase().includes(q) ||
+        (s.description && s.description.toLowerCase().includes(q))
+    )
+  }, [subjects, searchQuery])
+
+  // Keyboard shortcut to focus search
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const createMutation = useMutation({
     mutationFn: createSubject,
@@ -75,9 +108,54 @@ export function SubjectsPage() {
         </Button>
       </div>
 
-      {/* Subjects Grid */}
+      {/* Search Bar with InputGroup */}
+      <div className="max-w-md">
+        <InputGroup>
+          <InputGroupAddon placement="left">
+            <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+          </InputGroupAddon>
+          <InputGroupInput
+            ref={searchInputRef}
+            placeholder="Search subjects, topics, or notes... (Press / to search)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <div className="pr-2 flex items-center">
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </InputGroup>
+      </div>
+
+      {/* Loading Skeletons */}
       {isLoading ? (
-        <div className="py-12 text-center text-sm text-slate-400">Loading subjects...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="p-6 border border-slate-200 dark:border-slate-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-9 w-9 rounded-lg" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-3.5 w-full" />
+                <Skeleton className="h-3.5 w-4/5" />
+              </div>
+              <div className="pt-2 flex items-center justify-between">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-4 rounded-full" />
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : subjects.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 p-12 text-center">
           <BookOpen className="h-8 w-8 mx-auto text-slate-400 mb-2" />
@@ -87,9 +165,22 @@ export function SubjectsPage() {
             Create Subject
           </Button>
         </div>
+      ) : filteredSubjects.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 p-12 text-center space-y-3">
+          <Search className="h-7 w-7 mx-auto text-slate-400" />
+          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+            No subjects matching "{searchQuery}"
+          </p>
+          <p className="text-xs text-slate-500">
+            Try adjusting your query or clear the search to view all subjects.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => setSearchQuery('')}>
+            Clear Search
+          </Button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {subjects.map((subject) => {
+          {filteredSubjects.map((subject) => {
             const Icon = getSubjectIcon(subject.icon)
 
             return (
@@ -98,7 +189,7 @@ export function SubjectsPage() {
                 to={`/subjects/${subject.id}`}
                 className="group block"
               >
-                <Card className="h-full flex flex-col justify-between hover:border-slate-400 dark:hover:border-slate-600 transition-all">
+                <Card className="h-full flex flex-col justify-between hover:border-slate-400 dark:hover:border-slate-600 transition-all bg-white dark:bg-[#11131a]">
                   <CardHeader className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">

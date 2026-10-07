@@ -47,10 +47,11 @@ export function ChapterEditorPage() {
   const [linkText, setLinkText] = React.useState('')
 
   // Load subjects
-  const { data: subjects = [] } = useQuery({
+  const { data: rawSubjects = [] } = useQuery({
     queryKey: ['subjects'],
     queryFn: fetchSubjects,
   })
+  const subjects = Array.isArray(rawSubjects) ? rawSubjects : []
 
   // Set default subject if not yet set
   React.useEffect(() => {
