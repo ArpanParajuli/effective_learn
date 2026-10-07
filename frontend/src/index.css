@@ -156,3 +156,116 @@ body {
   font-size: 0.9em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
+
+/* Obsidian-Style Code Syntax Highlighting */
+.code-obsidian {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  tab-size: 2;
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #64748b;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #64748b;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol {
+  color: #d97706;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin {
+  color: #059669;
+}
+
+.token.operator,
+.token.entity,
+.token.url {
+  color: #0284c7;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.token.function,
+.token.class-name {
+  color: #2563eb;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #ea580c;
+}
+
+/* Dark Theme Syntax (Obsidian Modern Dark) */
+.dark .token.comment,
+.dark .token.prolog,
+.dark .token.doctype,
+.dark .token.cdata {
+  color: #64748b;
+  font-style: italic;
+}
+
+.dark .token.punctuation {
+  color: #94a3b8;
+}
+
+.dark .token.property,
+.dark .token.tag,
+.dark .token.boolean,
+.dark .token.number,
+.dark .token.constant,
+.dark .token.symbol {
+  color: #fbbf24;
+}
+
+.dark .token.selector,
+.dark .token.attr-name,
+.dark .token.string,
+.dark .token.char,
+.dark .token.builtin {
+  color: #34d399;
+}
+
+.dark .token.operator,
+.dark .token.entity,
+.dark .token.url {
+  color: #38bdf8;
+}
+
+.dark .token.atrule,
+.dark .token.attr-value,
+.dark .token.keyword {
+  color: #c084fc;
+  font-weight: 600;
+}
+
+.dark .token.function,
+.dark .token.class-name {
+  color: #60a5fa;
+}
+
+.dark .token.regex,
+.dark .token.important,
+.dark .token.variable {
+  color: #fb923c;
+}
