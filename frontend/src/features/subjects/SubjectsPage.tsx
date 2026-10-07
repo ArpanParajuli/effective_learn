@@ -9,7 +9,33 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import { toast } from 'sonner'
+
+const SUBJECTS_PER_PAGE = 6
+
+function getPaginationRange(current: number, total: number) {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const pages: (number | 'ellipsis')[] = []
+  if (current <= 3) {
+    pages.push(1, 2, 3, 4, 'ellipsis', total)
+  } else if (current >= total - 2) {
+    pages.push(1, 'ellipsis', total - 3, total - 2, total - 1, total)
+  } else {
+    pages.push(1, 'ellipsis', current - 1, current, current + 1, 'ellipsis', total)
+  }
+  return pages
+}
 
 export function SubjectsPage() {
   const queryClient = useQueryClient()
@@ -17,6 +43,7 @@ export function SubjectsPage() {
   const [newTitle, setNewTitle] = React.useState('')
   const [newDescription, setNewDescription] = React.useState('')
   const [searchQuery, setSearchQuery] = React.useState('')
+  const [currentPage, setCurrentPage] = React.useState(1)
   const searchInputRef = React.useRef<HTMLInputElement>(null)
 
   const { data: rawSubjects, isLoading } = useQuery({
@@ -36,6 +63,15 @@ export function SubjectsPage() {
         (s.description && s.description.toLowerCase().includes(q))
     )
   }, [subjects, searchQuery])
+
+  // Reset to page 1 on search change
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  const totalPages = Math.max(1, Math.ceil(filteredSubjects.length / SUBJECTS_PER_PAGE))
+  const startIndex = (currentPage - 1) * SUBJECTS_PER_PAGE
+  const paginatedSubjects = filteredSubjects.slice(startIndex, startIndex + SUBJECTS_PER_PAGE)
 
   // Keyboard shortcut to focus search
   React.useEffect(() => {
@@ -187,43 +223,100 @@ export function SubjectsPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {filteredSubjects.map((subject) => {
-            const Icon = getSubjectIcon(subject.icon)
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {paginatedSubjects.map((subject) => {
+              const Icon = getSubjectIcon(subject.icon)
 
-            return (
-              <Link
-                key={subject.id}
-                to={`/subjects/${subject.id}`}
-                className="group block"
-              >
-                <Card className="h-full flex flex-col justify-between hover:border-slate-400 dark:hover:border-slate-600 transition-all bg-white dark:bg-[#11131a]">
-                  <CardHeader className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
-                        <Icon className="h-4 w-4" />
+              return (
+                <Link
+                  key={subject.id}
+                  to={`/subjects/${subject.id}`}
+                  className="group block"
+                >
+                  <Card className="h-full flex flex-col justify-between hover:border-slate-400 dark:hover:border-slate-600 transition-all bg-white dark:bg-[#11131a]">
+                    <CardHeader className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <Badge variant="outline">
+                          {subject.chapterCount} {subject.chapterCount === 1 ? 'Chapter' : 'Chapters'}
+                        </Badge>
                       </div>
-                      <Badge variant="outline">
-                        {subject.chapterCount} {subject.chapterCount === 1 ? 'Chapter' : 'Chapters'}
-                      </Badge>
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                        {subject.title}
-                      </CardTitle>
-                      <CardDescription className="text-xs mt-1.5 line-clamp-2">
-                        {subject.description || 'No description provided.'}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    <span>Read notes & chapters</span>
-                    <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-                  </CardContent>
-                </Card>
-              </Link>
-            )
-          })}
+                      <div>
+                        <CardTitle className="text-lg group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          {subject.title}
+                        </CardTitle>
+                        <CardDescription className="text-xs mt-1.5 line-clamp-2">
+                          {subject.description || 'No description provided.'}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      <span>Read notes & chapters</span>
+                      <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                    </CardContent>
+                  </Card>
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* Shadcn Pagination Bar */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <p className="text-xs text-slate-500 dark:text-slate-400 order-2 sm:order-1">
+                Showing{' '}
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {startIndex + 1}
+                </span>
+                –
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {Math.min(startIndex + SUBJECTS_PER_PAGE, filteredSubjects.length)}
+                </span>{' '}
+                of{' '}
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {filteredSubjects.length}
+                </span>{' '}
+                subjects
+              </p>
+              <div className="order-1 sm:order-2">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage <= 1}
+                      />
+                    </PaginationItem>
+
+                    {getPaginationRange(currentPage, totalPages).map((item, idx) => (
+                      <PaginationItem key={idx}>
+                        {item === 'ellipsis' ? (
+                          <PaginationEllipsis />
+                        ) : (
+                          <PaginationLink
+                            isActive={currentPage === item}
+                            onClick={() => setCurrentPage(item as number)}
+                          >
+                            {item}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

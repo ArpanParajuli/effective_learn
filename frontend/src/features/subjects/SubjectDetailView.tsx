@@ -7,10 +7,37 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
+
+const CHAPTERS_PER_PAGE = 6
+
+function getPaginationRange(current: number, total: number) {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const pages: (number | 'ellipsis')[] = []
+  if (current <= 3) {
+    pages.push(1, 2, 3, 4, 'ellipsis', total)
+  } else if (current >= total - 2) {
+    pages.push(1, 'ellipsis', total - 3, total - 2, total - 1, total)
+  } else {
+    pages.push(1, 'ellipsis', current - 1, current, current + 1, 'ellipsis', total)
+  }
+  return pages
+}
 
 export function SubjectDetailView() {
   const { subjectId } = useParams<{ subjectId: string }>()
   const [chapterFilter, setChapterFilter] = React.useState('')
+  const [currentPage, setCurrentPage] = React.useState(1)
 
   const { data: rawSubjects = [] } = useQuery({
     queryKey: ['subjects'],
@@ -37,6 +64,15 @@ export function SubjectDetailView() {
         (c.summary && c.summary.toLowerCase().includes(q))
     )
   }, [chapters, chapterFilter])
+
+  // Reset page when filter changes
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [chapterFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredChapters.length / CHAPTERS_PER_PAGE))
+  const startIndex = (currentPage - 1) * CHAPTERS_PER_PAGE
+  const paginatedChapters = filteredChapters.slice(startIndex, startIndex + CHAPTERS_PER_PAGE)
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -135,42 +171,99 @@ export function SubjectDetailView() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredChapters.map((chapter, index) => (
-              <Link
-                key={chapter.id}
-                to={`/read/${chapter.id}`}
-                className="group block"
-              >
-                <Card className="hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-[#11131a]">
-                  <div className="p-5 flex items-start justify-between gap-4">
-                    <div className="space-y-1.5 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          {index + 1}
-                        </span>
-                        <h3 className="text-base font-semibold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                          {chapter.title}
-                        </h3>
+          <div className="space-y-4">
+            <div className="space-y-3">
+              {paginatedChapters.map((chapter, index) => (
+                <Link
+                  key={chapter.id}
+                  to={`/read/${chapter.id}`}
+                  className="group block"
+                >
+                  <Card className="hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-[#11131a]">
+                    <div className="p-5 flex items-start justify-between gap-4">
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {startIndex + index + 1}
+                          </span>
+                          <h3 className="text-base font-semibold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            {chapter.title}
+                          </h3>
+                        </div>
+                        {chapter.summary && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 pl-8 line-clamp-2">
+                            {chapter.summary}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 pl-8 pt-1 text-[11px] text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {chapter.estimatedMinutes} min read
+                          </span>
+                          <span>{new Date(chapter.createdAtUtc).toLocaleDateString()}</span>
+                        </div>
                       </div>
-                      {chapter.summary && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 pl-8 line-clamp-2">
-                          {chapter.summary}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 pl-8 pt-1 text-[11px] text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {chapter.estimatedMinutes} min read
-                        </span>
-                        <span>{new Date(chapter.createdAtUtc).toLocaleDateString()}</span>
-                      </div>
+                      <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all mt-1" />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all mt-1" />
-                  </div>
-                </Card>
-              </Link>
-            ))}
+                  </Card>
+                </Link>
+              ))}
+            </div>
+
+            {/* Shadcn Pagination Bar for Chapters */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <p className="text-xs text-slate-500 dark:text-slate-400 order-2 sm:order-1">
+                  Showing{' '}
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {startIndex + 1}
+                  </span>
+                  –
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {Math.min(startIndex + CHAPTERS_PER_PAGE, filteredChapters.length)}
+                  </span>{' '}
+                  of{' '}
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {filteredChapters.length}
+                  </span>{' '}
+                  chapters
+                </p>
+                <div className="order-1 sm:order-2">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={currentPage <= 1}
+                        />
+                      </PaginationItem>
+
+                      {getPaginationRange(currentPage, totalPages).map((item, idx) => (
+                        <PaginationItem key={idx}>
+                          {item === 'ellipsis' ? (
+                            <PaginationEllipsis />
+                          ) : (
+                            <PaginationLink
+                              isActive={currentPage === item}
+                              onClick={() => setCurrentPage(item as number)}
+                            >
+                              {item}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={currentPage >= totalPages}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
