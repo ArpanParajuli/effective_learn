@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { ArrowLeft, Sparkles, Lock, Mail, User as UserIcon } from 'lucide-react'
+import { ArrowLeft, KeyRound, Lock, Mail, User as UserIcon } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -171,7 +171,7 @@ export function AuthPage() {
                       toast.info('Loaded demo credentials for Arpan Parajuli')
                     }}
                   >
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500 mr-1.5" />
+                    <KeyRound className="h-3.5 w-3.5 text-amber-500 mr-1.5" />
                     Fill Demo Credentials
                   </Button>
                 </CardFooter>

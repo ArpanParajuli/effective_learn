@@ -16,10 +16,12 @@ import {
   Search,
   ArrowRight,
   Layers,
-  Sparkles,
+  Network,
   Info,
   X,
   Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchSubjects, fetchAllChapters } from '@/lib/api'
@@ -68,6 +70,26 @@ export function KnowledgeGraphView() {
   const [searchQuery, setSearchQuery] = React.useState('')
   const [activeSubjectFilter, setActiveSubjectFilter] = React.useState<string>('all')
 
+  // Smooth scroll controller for category pills
+  const pillsContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false)
+  const [canScrollRight, setCanScrollRight] = React.useState(false)
+
+  const checkScroll = React.useCallback(() => {
+    const el = pillsContainerRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }, [])
+
+  const scrollPills = (direction: 'left' | 'right') => {
+    const el = pillsContainerRef.current
+    if (!el) return
+    const offset = direction === 'left' ? -220 : 220
+    el.scrollBy({ left: offset, behavior: 'smooth' })
+    setTimeout(checkScroll, 300)
+  }
+
   // Refs to avoid simulation thrashing
   const themeRef = React.useRef(theme)
   const searchQueryRef = React.useRef(searchQuery)
@@ -109,6 +131,13 @@ export function KnowledgeGraphView() {
   const subjects = Array.isArray(rawSubjects) ? rawSubjects : []
   const chapters = Array.isArray(rawChapters) ? rawChapters : []
   const isLoading = loadingSubjects || loadingChapters
+
+  React.useEffect(() => {
+    checkScroll()
+    const handleResize = () => checkScroll()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [subjects, checkScroll])
 
   // Build Graph Nodes and Links
   const graphData = React.useMemo(() => {
@@ -505,13 +534,13 @@ export function KnowledgeGraphView() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto select-none">
+    <div className="space-y-6 max-w-6xl mx-auto select-none w-full overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-              <Sparkles className="h-3.5 w-3.5" />
+              <Network className="h-3.5 w-3.5" />
             </span>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
               Knowledge Graph
@@ -538,10 +567,10 @@ export function KnowledgeGraphView() {
         </div>
       </div>
 
-      {/* Control Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      {/* Control Bar: Search & Scrollable Category Filters */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
         {/* Search in Graph */}
-        <div className="w-full md:w-80">
+        <div className="w-full sm:w-64 md:w-72 shrink-0">
           <InputGroup className="h-9">
             <InputGroupAddon placement="left" className="px-2.5">
               <Search className="h-3.5 w-3.5 text-slate-400" />
@@ -555,7 +584,7 @@ export function KnowledgeGraphView() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="pr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="pr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -563,31 +592,62 @@ export function KnowledgeGraphView() {
           </InputGroup>
         </div>
 
-        {/* Subject Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs">
-          <button
-            onClick={() => setActiveSubjectFilter('all')}
-            className={`rounded-lg px-2.5 py-1 font-medium transition-colors cursor-pointer ${
-              activeSubjectFilter === 'all'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
-                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200'
-            }`}
-          >
-            All Categories ({subjects.length})
-          </button>
-          {subjects.map((s) => (
+        {/* Responsive Horizontal Scrollable Category Filter Pills */}
+        <div className="flex-1 min-w-0 relative flex items-center group">
+          {/* Scroll Left Button */}
+          {canScrollLeft && (
             <button
-              key={s.id}
-              onClick={() => setActiveSubjectFilter(s.id)}
-              className={`rounded-lg px-2.5 py-1 font-medium whitespace-nowrap transition-colors cursor-pointer ${
-                activeSubjectFilter === s.id
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200'
+              type="button"
+              onClick={() => scrollPills('left')}
+              className="absolute left-0 z-10 hidden sm:flex h-7 w-7 items-center justify-center rounded-full bg-white/95 dark:bg-[#11131a]/95 shadow-md border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer -translate-x-1"
+              title="Scroll left"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Scrollable track */}
+          <div
+            ref={pillsContainerRef}
+            onScroll={checkScroll}
+            className="flex items-center gap-1.5 overflow-x-auto py-1 w-full scroll-smooth no-scrollbar text-xs"
+          >
+            <button
+              onClick={() => setActiveSubjectFilter('all')}
+              className={`shrink-0 rounded-lg px-3 py-1.5 font-medium whitespace-nowrap transition-colors cursor-pointer text-xs ${
+                activeSubjectFilter === 'all'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800/80 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              {s.title}
+              All Categories ({subjects.length})
             </button>
-          ))}
+            {subjects.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSubjectFilter(s.id)}
+                className={`shrink-0 rounded-lg px-3 py-1.5 font-medium whitespace-nowrap transition-colors cursor-pointer text-xs ${
+                  activeSubjectFilter === s.id
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800/80 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {s.title}
+              </button>
+            ))}
+          </div>
+
+          {/* Scroll Right Button */}
+          {canScrollRight && (
+            <button
+              type="button"
+              onClick={() => scrollPills('right')}
+              className="absolute right-0 z-10 hidden sm:flex h-7 w-7 items-center justify-center rounded-full bg-white/95 dark:bg-[#11131a]/95 shadow-md border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer translate-x-1"
+              title="Scroll right"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
