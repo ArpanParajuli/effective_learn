@@ -80,6 +80,43 @@ body {
   line-height: 1.6;
 }
 
+/* Sleek Cross-Platform Custom Scrollbars (No thick white tracks) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+/* Smooth typing editor canvas */
+.editor-canvas {
+  caret-color: #6366f1;
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+
+.dark .editor-canvas {
+  caret-color: #818cf8;
+}
+
 /* Reader Typography Styles */
 .prose-reader {
   font-size: 1.0625rem;

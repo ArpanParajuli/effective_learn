@@ -20,7 +20,6 @@ import {
   Quote,
   Table as TableIcon,
   Minus,
-  Sparkles,
   Save,
   Copy,
   Check,
@@ -28,6 +27,7 @@ import {
   FileCode2,
   BookOpen,
   FileText,
+  LayoutTemplate,
   X,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -183,6 +183,9 @@ export function ChapterEditorPage() {
   const [cursorPos, setCursorPos] = React.useState({ line: 1, col: 1 })
   const [copiedMarkdown, setCopiedMarkdown] = React.useState(false)
 
+  // Smooth typing: Deferred content for live preview so high-speed typing never stutters
+  const deferredContent = React.useDeferredValue(content)
+
   // Modals for inserting media, code & templates
   const [showImageModal, setShowImageModal] = React.useState(false)
   const [imageUrl, setImageUrl] = React.useState('')
@@ -276,10 +279,10 @@ export function ChapterEditorPage() {
       textarea.focus()
       const newCursorPos = start + prefix.length + selected.length
       textarea.setSelectionRange(newCursorPos, newCursorPos)
-    }, 50)
+    }, 30)
   }
 
-  // Smooth keyboard handling: Tab indentation & shortcuts
+  // Smooth keyboard handling: Tab indentation, auto-continue bullets, and shortcuts
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Tab key: insert 2 spaces
     if (e.key === 'Tab') {
@@ -368,7 +371,7 @@ export function ChapterEditorPage() {
 
   const handleApplyTemplate = (templateContent: string, templateTitle: string) => {
     if (content.trim().length > 0) {
-      if (!window.confirm('Applying this template will replace the current content in your editor. Continue?')) {
+      if (!window.confirm('Applying this template will replace current content. Continue?')) {
         return
       }
     }
@@ -445,32 +448,53 @@ export function ChapterEditorPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Top Navigation & Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col h-[calc(100vh-140px)] min-h-[620px] max-w-7xl mx-auto space-y-3">
+      {/* Top Header Row: Back, Category, Metrics, Modes, Save */}
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-2 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to={subjectId ? `/subjects/${subjectId}` : '/'}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <span className="font-medium text-slate-700 dark:text-slate-300">
-              {currentSubject?.title || 'Subjects'}
+
+          {/* Clean Category Selector */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#11131a] text-xs">
+            <FolderOpen className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:inline">
+              Subject:
             </span>
-            <span>/</span>
-            <span className="text-slate-400 dark:text-slate-500">
-              {editingChapterId ? 'Editing Article' : 'New Article'}
-            </span>
-            <Badge variant="outline" className="ml-1 text-[10px] font-normal py-0">
-              {wordCount} words • ~{estimatedMinutes}m read
-            </Badge>
+            <select
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+              className="bg-transparent font-semibold text-slate-900 dark:text-white border-0 py-0 pl-1 pr-2 text-xs focus:outline-hidden cursor-pointer"
+            >
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id} className="dark:bg-[#11131a] text-slate-900 dark:text-white">
+                  {s.title}
+                </option>
+              ))}
+            </select>
           </div>
+
+          {/* Templates Trigger (No AI Icon) */}
+          <button
+            type="button"
+            onClick={() => setShowTemplateModal(true)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+          >
+            <LayoutTemplate className="h-3.5 w-3.5 text-indigo-500" />
+            <span className="text-xs">Templates</span>
+          </button>
+
+          <Badge variant="outline" className="hidden md:inline-flex text-[11px] font-normal py-0">
+            {wordCount} words • ~{estimatedMinutes}m read
+          </Badge>
         </div>
 
         {/* View Switcher & Publish Button */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2">
           {/* Segmented Mode Control */}
           <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#11131a] p-0.5">
             <button
@@ -511,77 +535,39 @@ export function ChapterEditorPage() {
             </button>
           </div>
 
-          {/* Publish / Save Button */}
-          <Button onClick={handleSave} disabled={isSaving} className="gap-2 shadow-xs">
-            <Save className="h-4 w-4" />
+          <Button onClick={handleSave} disabled={isSaving} size="sm" className="gap-1.5 h-8 text-xs font-medium">
+            <Save className="h-3.5 w-3.5" />
             <span>
               {isSaving
-                ? 'Publishing...'
+                ? 'Saving...'
                 : editingChapterId
                 ? 'Save Edits'
-                : 'Publish Chapter'}
+                : 'Publish'}
             </span>
           </Button>
         </div>
       </div>
 
-      {/* Notion-Style Clean Document Header (Seamless, Non-boxy) */}
-      <div className="space-y-3 pt-2">
-        {/* Subject Category Selector as sleek badge property */}
-        <div className="flex items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#11131a] text-xs text-slate-600 dark:text-slate-300">
-            <FolderOpen className="h-3.5 w-3.5 text-indigo-500" />
-            <span className="font-medium text-[11px] text-slate-400 uppercase tracking-wider">
-              Category:
-            </span>
-            <select
-              value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
-              className="bg-transparent font-medium text-slate-900 dark:text-white focus:outline-hidden cursor-pointer border-none py-0 pl-1 pr-4 text-xs"
-            >
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id} className="dark:bg-[#11131a] text-slate-900 dark:text-white">
-                  {s.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowTemplateModal(true)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 text-xs text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            <span>Templates</span>
-          </button>
-        </div>
-
-        {/* Seamless Fluid Title Input */}
-        <div>
-          <input
-            type="text"
-            placeholder="Chapter Title (e.g. 1. Clean Architecture & Boundaries)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700 bg-transparent border-0 outline-hidden focus:outline-hidden focus:ring-0 leading-tight p-0"
-          />
-        </div>
-
-        {/* Seamless Subtitle / Summary Input */}
-        <div>
-          <input
-            type="text"
-            placeholder="Add a concise takeaway or subtitle (optional)..."
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            className="w-full text-sm sm:text-base text-slate-600 dark:text-slate-400 placeholder:text-slate-400/50 dark:placeholder:text-slate-600 bg-transparent border-0 outline-hidden focus:outline-hidden focus:ring-0 italic p-0"
-          />
-        </div>
+      {/* Chapter Title & Subtitle Input Strip */}
+      <div className="space-y-1 shrink-0 px-1">
+        <input
+          type="text"
+          placeholder="Chapter Title (e.g. 1. Clean Architecture & Boundaries)"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white placeholder:text-slate-400/50 dark:placeholder:text-slate-600 bg-transparent border-0 outline-hidden focus:outline-hidden focus:ring-0 leading-snug p-0"
+        />
+        <input
+          type="text"
+          placeholder="Add an optional brief takeaway or subtitle..."
+          value={summary}
+          onChange={(e) => setSummary(e.target.value)}
+          className="w-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400/40 dark:placeholder:text-slate-600 bg-transparent border-0 outline-hidden focus:outline-hidden focus:ring-0 italic p-0"
+        />
       </div>
 
-      {/* Modern Floating / Sticky Formatting Toolbar */}
-      <div className="sticky top-16 z-20 bg-white/90 dark:bg-[#11131a]/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-xs rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-1 overflow-x-auto">
+      {/* Docked Formatting Toolbar */}
+      <div className="shrink-0 bg-slate-50/90 dark:bg-[#11131a]/90 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-1 overflow-x-auto">
         <div className="flex items-center gap-1 shrink-0">
           {/* Headings */}
           <div className="flex items-center gap-0.5 pr-1 border-r border-slate-200 dark:border-slate-800">
@@ -589,25 +575,25 @@ export function ChapterEditorPage() {
               type="button"
               onClick={() => insertTextAtCursor('\n# ', '\n', 'Heading 1')}
               title="Heading 1"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Heading1 className="h-4 w-4" />
+              <Heading1 className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => insertTextAtCursor('\n## ', '\n', 'Heading 2')}
               title="Heading 2"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Heading2 className="h-4 w-4" />
+              <Heading2 className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => insertTextAtCursor('\n### ', '\n', 'Heading 3')}
               title="Heading 3"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Heading3 className="h-4 w-4" />
+              <Heading3 className="h-3.5 w-3.5" />
             </button>
           </div>
 
@@ -617,43 +603,43 @@ export function ChapterEditorPage() {
               type="button"
               onClick={() => insertTextAtCursor('**', '**', 'bold text')}
               title="Bold (Ctrl+B)"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Bold className="h-4 w-4" />
+              <Bold className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => insertTextAtCursor('*', '*', 'italic text')}
               title="Italic (Ctrl+I)"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Italic className="h-4 w-4" />
+              <Italic className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => insertTextAtCursor('~~', '~~', 'strikethrough')}
               title="Strikethrough"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Strikethrough className="h-4 w-4" />
+              <Strikethrough className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => insertTextAtCursor('`', '`', 'inlineCode')}
               title="Inline Code"
-              className="px-1.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-xs font-mono font-semibold"
+              className="px-1.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer text-xs font-mono font-semibold"
             >
               {'</>'}
             </button>
           </div>
 
-          {/* Rich Media: Code Block, Image, Video, Bookmark */}
+          {/* Media Blocks */}
           <div className="flex items-center gap-1 px-1 border-r border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setShowCodeModal(true)}
               title="Insert Syntax-Highlighted Code Block"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <Code className="h-3.5 w-3.5 text-indigo-500" />
               <span>Code</span>
@@ -663,7 +649,7 @@ export function ChapterEditorPage() {
               type="button"
               onClick={() => setShowImageModal(true)}
               title="Insert Image / Diagram"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
               <span>Image</span>
@@ -673,7 +659,7 @@ export function ChapterEditorPage() {
               type="button"
               onClick={() => setShowVideoModal(true)}
               title="Embed Video Lecture"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <Film className="h-3.5 w-3.5 text-rose-500" />
               <span>Video</span>
@@ -683,14 +669,14 @@ export function ChapterEditorPage() {
               type="button"
               onClick={() => setShowWebsiteModal(true)}
               title="Insert Website Preview Bookmark"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-sky-950/50 hover:text-sky-600 dark:hover:text-sky-400 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <Globe className="h-3.5 w-3.5 text-sky-500" />
               <span>Bookmark</span>
             </button>
           </div>
 
-          {/* Blocks: Callout, Table, Lists, Divider */}
+          {/* Callouts, Lists, Tables */}
           <div className="flex items-center gap-0.5 pl-1">
             <button
               type="button"
@@ -702,25 +688,25 @@ export function ChapterEditorPage() {
                 )
               }
               title="Obsidian Callout Box"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Quote className="h-4 w-4" />
+              <Quote className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => insertTextAtCursor('\n- ', '\n', 'Bullet point')}
               title="Bullet List"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <List className="h-4 w-4" />
+              <List className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => insertTextAtCursor('\n1. ', '\n', 'Step one')}
               title="Numbered List"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <ListOrdered className="h-4 w-4" />
+              <ListOrdered className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
@@ -730,17 +716,17 @@ export function ChapterEditorPage() {
                 )
               }
               title="Insert Markdown Table"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <TableIcon className="h-4 w-4" />
+              <TableIcon className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => insertTextAtCursor('\n---\n\n')}
               title="Horizontal Divider"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
@@ -751,7 +737,7 @@ export function ChapterEditorPage() {
             type="button"
             onClick={handleCopyMarkdown}
             title="Copy Raw Markdown"
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             {copiedMarkdown ? (
               <>
@@ -768,31 +754,31 @@ export function ChapterEditorPage() {
         </div>
       </div>
 
-      {/* Editor & Preview Workspace Canvas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[640px]">
+      {/* Editor & Preview Workspace: Exact flex-1 height with independent inner scroll */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Editor Pane */}
         {(viewMode === 'write' || viewMode === 'split') && (
           <div
-            className={`flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c0d12] shadow-xs overflow-hidden transition-all ${
+            className={`flex flex-col h-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c0d12] shadow-2xs overflow-hidden ${
               viewMode === 'write' ? 'md:col-span-2' : ''
             }`}
           >
             {/* Editor Pane Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-4 py-2.5 bg-slate-50/70 dark:bg-[#11131a] text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-4 py-2 bg-slate-50/70 dark:bg-[#11131a] text-xs text-slate-500 dark:text-slate-400 shrink-0">
               <div className="flex items-center gap-2">
                 <FileCode2 className="h-3.5 w-3.5 text-indigo-500" />
                 <span className="font-semibold uppercase tracking-wider text-[11px] text-slate-700 dark:text-slate-300">
                   Markdown Editor
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-[11px]">
+              <div className="flex items-center gap-2 text-[11px]">
                 <span>Tab indents 2 spaces</span>
                 <span>•</span>
                 <span>Ctrl+B Bold</span>
               </div>
             </div>
 
-            {/* Smooth Textarea with generous padding and Obsidian monospace feel */}
+            {/* Smooth Textarea with internal scroll and smooth caret */}
             <textarea
               ref={textareaRef}
               value={content}
@@ -801,11 +787,11 @@ export function ChapterEditorPage() {
               onKeyUp={handleCursorActivity}
               onClick={handleCursorActivity}
               placeholder={`# Your Title\n\nWrite your concepts, explanations, architecture notes, and code here...\n\n### Code Demonstration\n\`\`\`csharp\npublic class CleanArchitecture\n{\n    // Clean decoupling\n}\n\`\`\`\n\n### Technical Diagram\n![Architecture Diagram](https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800)\n\n### Embedded Lecture\n[video:https://www.youtube.com/watch?v=d_k8k04nK_c]\n`}
-              className="flex-1 w-full p-5 sm:p-6 font-mono text-[14px] leading-relaxed bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400/50 dark:placeholder:text-slate-600 focus:outline-hidden resize-none min-h-[580px] selection:bg-indigo-500/20"
+              className="flex-1 min-h-0 w-full p-4 sm:p-5 font-mono text-[14px] leading-relaxed bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400/50 dark:placeholder:text-slate-600 focus:outline-hidden resize-none overflow-y-auto editor-canvas selection:bg-indigo-500/20"
             />
 
             {/* Status Footer Bar */}
-            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 px-4 py-2 bg-slate-50/50 dark:bg-[#0c0d12] text-[11px] text-slate-400">
+            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 px-4 py-1.5 bg-slate-50/50 dark:bg-[#0c0d12] text-[11px] text-slate-400 shrink-0">
               <div className="flex items-center gap-3">
                 <span>
                   Ln {cursorPos.line}, Col {cursorPos.col}
@@ -813,7 +799,7 @@ export function ChapterEditorPage() {
                 <span>•</span>
                 <span>{wordCount} words</span>
                 <span>•</span>
-                <span>{content.length} characters</span>
+                <span>{content.length} chars</span>
               </div>
               <div className="text-[11px] text-slate-400 hidden sm:block">
                 UTF-8 • Markdown
@@ -825,31 +811,31 @@ export function ChapterEditorPage() {
         {/* Live Article Preview Pane */}
         {(viewMode === 'preview' || viewMode === 'split') && (
           <div
-            className={`flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#090a0f] shadow-xs overflow-hidden transition-all ${
+            className={`flex flex-col h-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#090a0f] shadow-2xs overflow-hidden ${
               viewMode === 'preview' ? 'md:col-span-2' : ''
             }`}
           >
             {/* Preview Pane Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-4 py-2.5 bg-slate-50/70 dark:bg-[#11131a] text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-4 py-2 bg-slate-50/70 dark:bg-[#11131a] text-xs text-slate-500 dark:text-slate-400 shrink-0">
               <div className="flex items-center gap-2">
                 <BookOpen className="h-3.5 w-3.5 text-emerald-500" />
                 <span className="font-semibold uppercase tracking-wider text-[11px] text-slate-700 dark:text-slate-300">
-                  Live Rendered Article
+                  Live Article Preview
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[11px]">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Synchronized</span>
+                <span>Live Synchronized</span>
               </div>
             </div>
 
-            {/* Preview Content Body */}
-            <div className="p-6 sm:p-8 overflow-y-auto max-h-[760px] flex-1">
+            {/* Preview Content Body: Dedicated inner smooth scroll */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6">
               {/* Rendered Document Header */}
               {(title || summary || currentSubject) && (
-                <div className="space-y-3 pb-6 mb-6 border-b border-slate-200 dark:border-slate-800">
+                <div className="space-y-2 pb-5 mb-5 border-b border-slate-200 dark:border-slate-800">
                   {currentSubject && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs font-medium">
                       {currentSubject.title}
                     </Badge>
                   )}
@@ -866,10 +852,10 @@ export function ChapterEditorPage() {
                 </div>
               )}
 
-              {content.trim() ? (
-                <RichContentRenderer content={content} />
+              {deferredContent.trim() ? (
+                <RichContentRenderer content={deferredContent} />
               ) : (
-                <div className="py-24 text-center space-y-3 text-slate-400">
+                <div className="py-20 text-center space-y-2 text-slate-400">
                   <FileText className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-700" />
                   <p className="text-sm italic">
                     Your formatted article, syntax highlighted code, and diagrams will render here in real-time...
@@ -943,7 +929,7 @@ export function ChapterEditorPage() {
                     setImageAlt('Cloud Datacenter Infrastructure & Nodes')
                   }}
                 >
-                  <Sparkles className="h-3 w-3 text-amber-500 mr-1" /> Use Sample
+                  <ImageIcon className="h-3 w-3 mr-1" /> Use Sample
                 </Button>
 
                 <div className="flex gap-2">
@@ -1122,18 +1108,18 @@ export function ChapterEditorPage() {
         </div>
       )}
 
-      {/* MODAL 5: Starter Templates Picker */}
+      {/* MODAL 5: Starter Templates Picker (No AI Icons) */}
       {showTemplateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#11131a] p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-amber-500" />
+                  <LayoutTemplate className="h-5 w-5 text-indigo-500" />
                   Choose a Starter Template
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Pre-structured layouts designed for clear technical writing and diagrams.
+                  Pre-structured blueprints designed for clear technical writing and diagrams.
                 </p>
               </div>
               <button
