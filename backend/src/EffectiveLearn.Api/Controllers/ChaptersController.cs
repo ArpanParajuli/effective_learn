@@ -7,6 +7,14 @@ namespace EffectiveLearn.Api.Controllers;
 
 public class ChaptersController : ApiControllerBase
 {
+    [HttpGet]
+    [ProducesResponseType(typeof(List<ChapterSummaryDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<ChapterSummaryDto>>> GetAllChapters()
+    {
+        var result = await Mediator.Send(new GetAllChaptersQuery());
+        return Ok(result);
+    }
+
     [HttpGet("by-subject/{subjectId:guid}")]
     [ProducesResponseType(typeof(List<ChapterSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ChapterSummaryDto>>> GetBySubject(Guid subjectId)

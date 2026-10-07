@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, BookOpen, Layers, Server, Database, ChevronRight, Search, X } from 'lucide-react'
+import { Plus, BookOpen, Layers, Server, Database, ChevronRight, Search, X, Network } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchSubjects, createSubject } from '@/lib/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
@@ -102,10 +102,18 @@ export function SubjectsPage() {
             Browse through your curated technical subjects, chapters, notes, and video tutorials.
           </p>
         </div>
-        <Button onClick={() => setShowModal(true)} className="sm:self-end">
-          <Plus className="h-4 w-4" />
-          New Subject
-        </Button>
+        <div className="flex items-center gap-2 sm:self-end">
+          <Link to="/graph">
+            <Button variant="outline" className="gap-2">
+              <Network className="h-4 w-4" />
+              <span>Concept Graph</span>
+            </Button>
+          </Link>
+          <Button onClick={() => setShowModal(true)}>
+            <Plus className="h-4 w-4" />
+            New Subject
+          </Button>
+        </div>
       </div>
 
       {/* Search Bar with InputGroup */}

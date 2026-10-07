@@ -223,6 +223,36 @@ export async function fetchChaptersBySubject(subjectId: string): Promise<Chapter
     : []
 }
 
+export async function fetchAllChapters(): Promise<ChapterSummary[]> {
+  try {
+    const res = await apiClient.get<ChapterSummary[]>('/chapters')
+    if (Array.isArray(res.data) && res.data.length > 0) {
+      return res.data
+    }
+  } catch {
+    // fallback
+  }
+
+  const all: ChapterSummary[] = []
+  for (const sId in localChapters) {
+    const items = localChapters[sId] || []
+    for (const c of items) {
+      all.push({
+        id: c.id,
+        subjectId: c.subjectId,
+        title: c.title,
+        slug: c.slug,
+        summary: c.summary,
+        orderIndex: c.orderIndex,
+        estimatedMinutes: c.estimatedMinutes,
+        isPublished: c.isPublished,
+        createdAtUtc: c.createdAtUtc,
+      })
+    }
+  }
+  return all
+}
+
 export async function fetchChapterById(chapterId: string): Promise<ChapterDetail> {
   try {
     const res = await apiClient.get<ChapterDetail>(`/chapters/${chapterId}`)

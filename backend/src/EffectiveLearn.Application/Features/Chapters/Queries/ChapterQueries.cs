@@ -81,3 +81,37 @@ public class GetChapterByIdQueryHandler : IRequestHandler<GetChapterByIdQuery, C
         };
     }
 }
+
+public record GetAllChaptersQuery : IRequest<List<ChapterSummaryDto>>;
+
+public class GetAllChaptersQueryHandler : IRequestHandler<GetAllChaptersQuery, List<ChapterSummaryDto>>
+{
+    private readonly IApplicationDbContext _context;
+
+    public GetAllChaptersQueryHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<ChapterSummaryDto>> Handle(GetAllChaptersQuery request, CancellationToken cancellationToken)
+    {
+        return await _context.Chapters
+            .AsNoTracking()
+            .Where(c => c.IsPublished)
+            .OrderBy(c => c.SubjectId)
+            .ThenBy(c => c.OrderIndex)
+            .Select(c => new ChapterSummaryDto
+            {
+                Id = c.Id,
+                SubjectId = c.SubjectId,
+                Title = c.Title,
+                Slug = c.Slug,
+                Summary = c.Summary,
+                OrderIndex = c.OrderIndex,
+                EstimatedMinutes = c.EstimatedMinutes,
+                IsPublished = c.IsPublished,
+                CreatedAtUtc = c.CreatedAtUtc
+            })
+            .ToListAsync(cancellationToken);
+    }
+}

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { PenTool, LogOut, User, Plus } from 'lucide-react'
+import { PenTool, LogOut, User, Plus, Network } from 'lucide-react'
 import { ModeToggle } from '@/components/mode-toggle'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
@@ -43,7 +43,7 @@ export function Navbar() {
           </Link>
 
           {/* Nav items */}
-          <nav className="hidden sm:flex items-center gap-2">
+          <nav className="hidden sm:flex items-center gap-1.5">
             <Link
               to="/"
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
@@ -53,6 +53,17 @@ export function Navbar() {
               }`}
             >
               Subjects
+            </Link>
+            <Link
+              to="/graph"
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                location.pathname === '/graph'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Network className="h-3.5 w-3.5" />
+              <span>Graph View</span>
             </Link>
           </nav>
         </div>
