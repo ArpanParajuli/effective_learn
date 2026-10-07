@@ -1,0 +1,49 @@
+# Logs & Environment Variables
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+.eslintcache
+
+# .NET / Backend
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+appsettings.Development.json
+appsettings.Production.json
+!appsettings.json
+!appsettings.*.example.json
+
+# Visual Studio / Rider / IDE
+.vs/
+.idea/
+*.DotSettings.user
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker / Temporary
+docker-compose.override.yml
+*.db
+*.db-journal
+postgres-data/

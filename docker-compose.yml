@@ -1,0 +1,84 @@
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 17 Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    container_name: effectivelearn-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-effectivelearn}
+      POSTGRES_USER: ${POSTGRES_USER:-effective_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-effective_secret_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - effectivelearn-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-effective_app} -d ${POSTGRES_DB:-effectivelearn}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # ASP.NET Core 10 LTS Backend API
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: effectivelearn-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB:-effectivelearn};Username=${POSTGRES_USER:-effective_app};Password=${POSTGRES_PASSWORD:-effective_secret_password}
+      - Cors__AllowedOrigins__0=http://localhost:3000
+      - Cors__AllowedOrigins__1=http://localhost:5173
+      - Cors__AllowedOrigins__2=http://localhost:8080
+    ports:
+      - "5000:8080"
+    networks:
+      - effectivelearn-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # Vite React Production Nginx Frontend
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: effectivelearn-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:8080"
+    networks:
+      - effectivelearn-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  effectivelearn-network:
+    driver: bridge

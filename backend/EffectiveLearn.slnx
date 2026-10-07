@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EffectiveLearn.Api/EffectiveLearn.Api.csproj" />
+    <Project Path="src/EffectiveLearn.Application/EffectiveLearn.Application.csproj" />
+    <Project Path="src/EffectiveLearn.Domain/EffectiveLearn.Domain.csproj" />
+    <Project Path="src/EffectiveLearn.Infrastructure/EffectiveLearn.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EffectiveLearn.UnitTests/EffectiveLearn.UnitTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,88 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # Frontend Validation (TypeScript, Vite, Build)
+  # ===========================================================================
+  frontend-ci:
+    name: Frontend CI (React 19 + TypeScript)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Type Check
+        run: npx tsc -b
+
+      - name: Build Production Bundle
+        run: npm run build
+
+  # ===========================================================================
+  # Backend Validation (.NET 10 LTS, Clean Architecture, Unit Tests)
+  # ===========================================================================
+  backend-ci:
+    name: Backend CI (ASP.NET Core 10 LTS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore NuGet Packages
+        run: dotnet restore EffectiveLearn.slnx
+
+      - name: Build Solution (Release)
+        run: dotnet build EffectiveLearn.slnx -c Release --no-restore
+
+      - name: Run Automated Unit Tests
+        run: dotnet test EffectiveLearn.slnx -c Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+
+  # ===========================================================================
+  # Security & Secret Scanning (Prevent Credential Exposure)
+  # ===========================================================================
+  security-audit:
+    name: Security & Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Leaked Secrets with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false
