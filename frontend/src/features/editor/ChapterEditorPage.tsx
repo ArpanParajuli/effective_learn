@@ -27,7 +27,6 @@ import {
   FileCode2,
   BookOpen,
   FileText,
-  LayoutTemplate,
   Type,
   X,
 } from 'lucide-react'
@@ -51,123 +50,6 @@ const PROGRAMMING_LANGUAGES = [
   { value: 'css', label: 'CSS / Tailwind' },
 ]
 
-const STARTER_TEMPLATES = [
-  {
-    title: 'Technical Deep-Dive',
-    desc: 'System architecture, trade-offs, diagram, and core implementation.',
-    content: `# Architecture Deep-Dive
-
-An in-depth breakdown of architectural patterns, system boundaries, and resilience strategies.
-
-> [!NOTE]
-> High availability, bounded contexts, and graceful degradation are foundational tenets for distributed systems.
-
-## 1. System Topology & Context
-Describe the high-level architecture and how requests flow through each service layer.
-
-### Architecture Diagram
-![System Architecture Diagram](https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800)
-
-## 2. Core Implementation
-Here is the core service abstraction implementing clean separation of concerns:
-
-\`\`\`csharp
-public interface IOrderProcessingPipeline
-{
-    Task<ProcessResult> ExecuteAsync(OrderPayload order, CancellationToken ct);
-}
-
-public class OrderProcessingPipeline : IOrderProcessingPipeline
-{
-    private readonly ILogger<OrderProcessingPipeline> _logger;
-
-    public OrderProcessingPipeline(ILogger<OrderProcessingPipeline> logger)
-    {
-        _logger = logger;
-    }
-
-    public async Task<ProcessResult> ExecuteAsync(OrderPayload order, CancellationToken ct)
-    {
-        _logger.LogInformation("Processing order {OrderId}...", order.Id);
-        await Task.Delay(50, ct);
-        return ProcessResult.Success(order.Id);
-    }
-}
-\`\`\`
-
-## 3. Key Takeaways & Trade-offs
-- Decouple compute boundaries using message queues.
-- Optimize tail latencies (p99) rather than simple averages.
-
-### Video Walkthrough
-[video:https://www.youtube.com/watch?v=d_k8k04nK_c]
-`,
-  },
-  {
-    title: 'Hands-on Code Tutorial',
-    desc: 'Practical guide with code snippets, tips, and step-by-step instructions.',
-    content: `# Practical Code Tutorial
-
-A hands-on, runnable guide covering implementation details, common pitfalls, and best practices.
-
-## Prerequisites
-- Node.js 22+ or .NET 10 SDK
-- PostgreSQL 17
-
-## Step 1: Initialize the Service Boundary
-Define clear types and return contracts to ensure type safety across the application:
-
-\`\`\`typescript
-export interface ServiceResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-}
-
-export async function executeQuery<T>(sql: string): Promise<ServiceResponse<T>> {
-  try {
-    const result = await db.query(sql)
-    return { success: true, data: result }
-  } catch (err) {
-    return { success: false, error: (err as Error).message }
-  }
-}
-\`\`\`
-
-> [!TIP]
-> Always enforce strict return types and comprehensive error handling.
-
-## Step 2: Verification & Testing
-Run unit tests to verify the behavior under edge conditions:
-
-\`\`\`bash
-npm run test -- --coverage
-\`\`\`
-`,
-  },
-  {
-    title: 'Video Lecture Notes',
-    desc: 'Curated lecture breakdown with timestamps, video embed, and bookmarks.',
-    content: `# Video Lecture Notes & Synthesis
-
-Comprehensive breakdown and key concepts from the technical deep-dive lecture.
-
-### Lecture Recording
-[video:https://www.youtube.com/watch?v=5faMjKuB9bc]
-
-## Core Concepts Covered
-- **Horizontal Scaling**: Partitioning database workloads across nodes.
-- **Cache Strategies**: Cache-aside vs Write-through architectures.
-
-> [!WARNING]
-> Cache invalidation can lead to thundering herd problems if TTLs are not staggered with jitter.
-
-## Recommended Reading
-Read the official design docs at [website:https://learn.microsoft.com/en-us/azure/architecture/|Cloud Architecture Center].
-`,
-  },
-]
-
 export function ChapterEditorPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -183,15 +65,16 @@ export function ChapterEditorPage() {
   const [viewMode, setViewMode] = React.useState<'write' | 'preview' | 'split'>('split')
   const [cursorPos, setCursorPos] = React.useState({ line: 1, col: 1 })
   const [copiedMarkdown, setCopiedMarkdown] = React.useState(false)
+  const [isDirty, setIsDirty] = React.useState(false)
 
   // Custom typography preferences: Mono, Sans, or Serif font + size control
   const [editorFont, setEditorFont] = React.useState<'mono' | 'sans' | 'serif'>('mono')
   const [editorFontSize, setEditorFontSize] = React.useState<number>(14)
 
-  // Smooth typing: Deferred content for live preview so high-speed typing never stutters
+  // Smooth typing: Deferred content for live preview so 120 FPS typing never stutters
   const deferredContent = React.useDeferredValue(content)
 
-  // Modals for inserting media, code & templates
+  // Modals for inserting media & code
   const [showImageModal, setShowImageModal] = React.useState(false)
   const [imageUrl, setImageUrl] = React.useState('')
   const [imageAlt, setImageAlt] = React.useState('')
@@ -206,8 +89,6 @@ export function ChapterEditorPage() {
   const [showWebsiteModal, setShowWebsiteModal] = React.useState(false)
   const [websiteUrl, setWebsiteUrl] = React.useState('')
   const [websiteTitle, setWebsiteTitle] = React.useState('')
-
-  const [showTemplateModal, setShowTemplateModal] = React.useState(false)
 
   // Load subjects
   const { data: rawSubjects = [] } = useQuery({
@@ -237,10 +118,55 @@ export function ChapterEditorPage() {
       setSummary(existingChapter.summary)
       setContent(existingChapter.content)
       setSubjectId(existingChapter.subjectId)
+      setIsDirty(false)
     }
   }, [existingChapter])
 
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+  // Auto-extract title from markdown if not manually overridden
+  const extractedTitle = React.useMemo(() => {
+    if (!content) return ''
+    const lines = content.split('\n')
+    for (const raw of lines) {
+      const trimmed = raw.trim()
+      if (trimmed.startsWith('# ')) {
+        return trimmed.replace(/^#\s+/, '').trim()
+      }
+    }
+    for (const raw of lines) {
+      const trimmed = raw.trim()
+      if (trimmed && !trimmed.startsWith('```') && !trimmed.startsWith('![') && !trimmed.startsWith('>')) {
+        return trimmed.replace(/^[#\-*]\s*/, '').slice(0, 100).trim()
+      }
+    }
+    return ''
+  }, [content])
+
+  // Auto-extract summary from first non-heading paragraph under title
+  const extractedSummary = React.useMemo(() => {
+    if (!content) return ''
+    const lines = content.split('\n')
+    let foundTitle = false
+    for (const raw of lines) {
+      const trimmed = raw.trim()
+      if (trimmed.startsWith('# ')) {
+        foundTitle = true
+        continue
+      }
+      if (
+        foundTitle &&
+        trimmed &&
+        !trimmed.startsWith('#') &&
+        !trimmed.startsWith('```') &&
+        !trimmed.startsWith('![') &&
+        !trimmed.startsWith('>')
+      ) {
+        return trimmed.slice(0, 200).trim()
+      }
+    }
+    return ''
+  }, [content])
 
   // Statistics
   const wordCount = React.useMemo(() => {
@@ -267,6 +193,7 @@ export function ChapterEditorPage() {
     const textarea = textareaRef.current
     if (!textarea) {
       setContent((prev) => prev + '\n' + prefix + defaultText + suffix)
+      setIsDirty(true)
       return
     }
 
@@ -281,6 +208,7 @@ export function ChapterEditorPage() {
       const before = content.substring(0, start)
       const after = content.substring(end)
       setContent(before + unwrapped + after)
+      setIsDirty(true)
       setTimeout(() => {
         textarea.focus()
         textarea.setSelectionRange(start, start + unwrapped.length)
@@ -293,21 +221,20 @@ export function ChapterEditorPage() {
     const after = content.substring(end)
 
     setContent(before + replacement + after)
+    setIsDirty(true)
 
     setTimeout(() => {
       textarea.focus()
       if (!hasSelection && defaultText) {
-        // Highlight default text so user can immediately type over it
         textarea.setSelectionRange(start + prefix.length, start + prefix.length + defaultText.length)
       } else {
-        // Position cursor right after replacement
         const newCursorPos = start + replacement.length
         textarea.setSelectionRange(newCursorPos, newCursorPos)
       }
     }, 10)
   }
 
-  // Smooth keyboard handling: Tab indentation, auto-continue bullets, and shortcuts
+  // Smooth keyboard handling: Tab indentation, shortcuts
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Tab key: insert 2 spaces
     if (e.key === 'Tab') {
@@ -318,6 +245,7 @@ export function ChapterEditorPage() {
       const end = textarea.selectionEnd
       const newContent = content.substring(0, start) + '  ' + content.substring(end)
       setContent(newContent)
+      setIsDirty(true)
       setTimeout(() => {
         textarea.setSelectionRange(start + 2, start + 2)
       }, 10)
@@ -394,20 +322,6 @@ export function ChapterEditorPage() {
     toast.success('Website preview bookmark inserted!')
   }
 
-  const handleApplyTemplate = (templateContent: string, templateTitle: string) => {
-    if (content.trim().length > 0) {
-      if (!window.confirm('Applying this template will replace current content. Continue?')) {
-        return
-      }
-    }
-    setContent(templateContent)
-    if (!title.trim()) {
-      setTitle(templateTitle)
-    }
-    setShowTemplateModal(false)
-    toast.success(`"${templateTitle}" template loaded!`)
-  }
-
   // Mutations
   const createMutation = useMutation({
     mutationFn: createChapter,
@@ -415,6 +329,7 @@ export function ChapterEditorPage() {
       queryClient.invalidateQueries({ queryKey: ['chapters'] })
       queryClient.invalidateQueries({ queryKey: ['all-chapters'] })
       queryClient.invalidateQueries({ queryKey: ['subjects'] })
+      setIsDirty(false)
       toast.success('Chapter published successfully!')
       navigate(`/read/${newId}`)
     },
@@ -427,6 +342,7 @@ export function ChapterEditorPage() {
       queryClient.invalidateQueries({ queryKey: ['chapter', editingChapterId] })
       queryClient.invalidateQueries({ queryKey: ['chapters'] })
       queryClient.invalidateQueries({ queryKey: ['all-chapters'] })
+      setIsDirty(false)
       toast.success('Chapter updated successfully!')
       navigate(`/read/${editingChapterId}`)
     },
@@ -434,8 +350,9 @@ export function ChapterEditorPage() {
   })
 
   const handleSave = () => {
-    if (!title.trim()) {
-      toast.error('Please enter a chapter title.')
+    const finalTitle = (title.trim() || extractedTitle || '').trim()
+    if (!finalTitle) {
+      toast.error('Please write a chapter title (e.g. # Chapter Title) in your Markdown document.')
       return
     }
     if (!subjectId) {
@@ -447,11 +364,13 @@ export function ChapterEditorPage() {
       return
     }
 
+    const finalSummary = summary.trim() || extractedSummary
+
     if (editingChapterId) {
       updateMutation.mutate({
         id: editingChapterId,
-        title: title.trim(),
-        summary: summary.trim(),
+        title: finalTitle,
+        summary: finalSummary,
         content: content.trim(),
         orderIndex: existingChapter?.orderIndex || 1,
         estimatedMinutes,
@@ -460,8 +379,8 @@ export function ChapterEditorPage() {
     } else {
       createMutation.mutate({
         subjectId,
-        title: title.trim(),
-        summary: summary.trim(),
+        title: finalTitle,
+        summary: finalSummary,
         content: content.trim(),
         orderIndex: 1,
         estimatedMinutes,
@@ -473,18 +392,19 @@ export function ChapterEditorPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] min-h-[620px] max-w-7xl mx-auto space-y-3">
-      {/* Top Header Row: Back, Category, Metrics, Modes, Save */}
+    <div className="flex flex-col h-[calc(100vh-130px)] min-h-[620px] max-w-7xl mx-auto space-y-2.5">
+      {/* Top Header Row: Back, Subject, Document Title, Telemetry, Mode Controller, Publish */}
       <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-2 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <Link
             to={subjectId ? `/subjects/${subjectId}` : '/'}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title="Back to Subject"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
 
-          {/* Clean Category Selector */}
+          {/* Clean Subject Category Selector */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#11131a] text-xs">
             <FolderOpen className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:inline">
@@ -492,7 +412,10 @@ export function ChapterEditorPage() {
             </span>
             <select
               value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
+              onChange={(e) => {
+                setSubjectId(e.target.value)
+                setIsDirty(true)
+              }}
               className="bg-transparent font-semibold text-slate-900 dark:text-white border-0 py-0 pl-1 pr-2 text-xs focus:outline-hidden cursor-pointer"
             >
               {subjects.map((s) => (
@@ -503,19 +426,43 @@ export function ChapterEditorPage() {
             </select>
           </div>
 
-          {/* Templates Trigger (No AI Icon) */}
-          <button
-            type="button"
-            onClick={() => setShowTemplateModal(true)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-          >
-            <LayoutTemplate className="h-3.5 w-3.5 text-indigo-500" />
-            <span className="text-xs">Templates</span>
-          </button>
+          {/* Document Title Breadcrumb & Quick Rename */}
+          <div className="flex items-center gap-1.5 max-w-[200px] sm:max-w-[320px]">
+            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline select-none">/</span>
+            <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0 hidden sm:inline" />
+            <input
+              type="text"
+              value={title || extractedTitle}
+              onChange={(e) => {
+                setTitle(e.target.value)
+                setIsDirty(true)
+              }}
+              placeholder="Untitled Chapter"
+              title="Chapter Title (auto-synced with # Heading in Markdown)"
+              className="bg-transparent font-semibold text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 border-b border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden transition-colors truncate px-1 py-0.5"
+            />
+          </div>
 
-          <Badge variant="outline" className="hidden md:inline-flex text-[11px] font-normal py-0">
-            {wordCount} words • ~{estimatedMinutes}m read
-          </Badge>
+          {/* Live Document Telemetry */}
+          <div className="hidden lg:flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 text-[11px] text-slate-500 dark:text-slate-400">
+              <span>{wordCount} words</span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span>~{estimatedMinutes}m read</span>
+            </div>
+
+            {isDirty ? (
+              <span className="flex items-center gap-1.5 text-[11px] text-amber-500 font-medium">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                Unsaved
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-[11px] text-emerald-500 font-medium">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Synced
+              </span>
+            )}
+          </div>
         </div>
 
         {/* View Switcher & Publish Button */}
@@ -560,7 +507,12 @@ export function ChapterEditorPage() {
             </button>
           </div>
 
-          <Button onClick={handleSave} disabled={isSaving} size="sm" className="gap-1.5 h-8 text-xs font-medium">
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            size="sm"
+            className="gap-1.5 h-8 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
+          >
             <Save className="h-3.5 w-3.5" />
             <span>
               {isSaving
@@ -569,26 +521,11 @@ export function ChapterEditorPage() {
                 ? 'Save Edits'
                 : 'Publish'}
             </span>
+            <kbd className="hidden sm:inline-block ml-0.5 px-1 py-0.2 bg-indigo-750/70 text-[10px] rounded font-mono text-indigo-200">
+              Ctrl+S
+            </kbd>
           </Button>
         </div>
-      </div>
-
-      {/* Chapter Title & Subtitle Input Strip */}
-      <div className="space-y-1 shrink-0 px-1">
-        <input
-          type="text"
-          placeholder="Chapter Title (e.g. 1. Clean Architecture & Boundaries)"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white placeholder:text-slate-400/50 dark:placeholder:text-slate-600 bg-transparent border-0 outline-hidden focus:outline-hidden focus:ring-0 leading-snug p-0"
-        />
-        <input
-          type="text"
-          placeholder="Add an optional brief takeaway or subtitle..."
-          value={summary}
-          onChange={(e) => setSummary(e.target.value)}
-          className="w-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400/40 dark:placeholder:text-slate-600 bg-transparent border-0 outline-hidden focus:outline-hidden focus:ring-0 italic p-0"
-        />
       </div>
 
       {/* Docked Formatting Toolbar */}
@@ -826,7 +763,7 @@ export function ChapterEditorPage() {
               <div className="flex items-center gap-2">
                 <FileCode2 className="h-3.5 w-3.5 text-indigo-500" />
                 <span className="font-semibold uppercase tracking-wider text-[11px] text-slate-700 dark:text-slate-300">
-                  Markdown Editor
+                  Markdown Canvas
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">
                   ({editorFont} • {editorFontSize}px)
@@ -836,6 +773,8 @@ export function ChapterEditorPage() {
                 <span>Tab indents 2 spaces</span>
                 <span>•</span>
                 <span>Ctrl+B Bold</span>
+                <span>•</span>
+                <span>Ctrl+S Save</span>
               </div>
             </div>
 
@@ -843,11 +782,14 @@ export function ChapterEditorPage() {
             <textarea
               ref={textareaRef}
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                setContent(e.target.value)
+                setIsDirty(true)
+              }}
               onKeyDown={handleKeyDown}
               onKeyUp={handleCursorActivity}
               onClick={handleCursorActivity}
-              placeholder={`# Your Title\n\nWrite your concepts, explanations, architecture notes, and code here...\n\n### Code Demonstration\n\`\`\`csharp\npublic class CleanArchitecture\n{\n    // Clean decoupling\n}\n\`\`\`\n\n### Technical Diagram\n![Architecture Diagram](https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800)\n\n### Embedded Lecture\n[video:https://www.youtube.com/watch?v=d_k8k04nK_c]\n`}
+              placeholder={`# 1. Clean Architecture & Boundaries\n\nWrite your concepts, explanations, architecture notes, and code here directly in Markdown...\n\n### Core Principles\n- Decouple domain core from external infrastructure\n- Enforce unidirectional dependencies\n\n### Code Demonstration\n\`\`\`csharp\npublic class CleanArchitecture\n{\n    // Domain logic core\n}\n\`\`\`\n\n| Layer | Responsibility | Status |\n| :--- | :--- | :--- |\n| Domain | Enterprise business rules | Core |\n| Infrastructure | External persistence & HTTP | Boundary |\n\n### Technical Diagram\n![Architecture Diagram](https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800)\n\n### Video Lecture\n[video:https://www.youtube.com/watch?v=d_k8k04nK_c]\n`}
               className={`flex-1 min-h-0 w-full p-4 sm:p-5 leading-relaxed bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400/50 dark:placeholder:text-slate-600 focus:outline-hidden resize-none overflow-y-auto editor-canvas selection:bg-indigo-500/20 ${
                 editorFont === 'mono'
                   ? 'font-canvas-mono'
@@ -870,7 +812,7 @@ export function ChapterEditorPage() {
                 <span>{content.length} chars</span>
               </div>
               <div className="text-[11px] text-slate-400 hidden sm:block">
-                UTF-8 • Markdown
+                UTF-8 • Markdown AST
               </div>
             </div>
           </div>
@@ -899,34 +841,25 @@ export function ChapterEditorPage() {
 
             {/* Preview Content Body: Dedicated inner smooth scroll */}
             <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6">
-              {/* Rendered Document Header */}
-              {(title || summary || currentSubject) && (
-                <div className="space-y-2 pb-5 mb-5 border-b border-slate-200 dark:border-slate-800">
-                  {currentSubject && (
-                    <Badge variant="outline" className="text-xs font-medium">
-                      {currentSubject.title}
-                    </Badge>
-                  )}
-                  {title && (
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-                      {title}
-                    </h1>
-                  )}
-                  {summary && (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 italic">
-                      {summary}
-                    </p>
-                  )}
+              {/* Optional Subject Pill */}
+              {currentSubject && (
+                <div className="mb-4">
+                  <Badge variant="outline" className="text-xs font-semibold border-indigo-500/20 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20">
+                    {currentSubject.title}
+                  </Badge>
                 </div>
               )}
 
               {deferredContent.trim() ? (
                 <RichContentRenderer content={deferredContent} />
               ) : (
-                <div className="py-20 text-center space-y-2 text-slate-400">
-                  <FileText className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-700" />
-                  <p className="text-sm italic">
-                    Your formatted article, syntax highlighted code, and diagrams will render here in real-time...
+                <div className="py-24 text-center space-y-3 text-slate-400">
+                  <FileText className="h-10 w-10 mx-auto text-slate-300 dark:text-slate-700 stroke-[1.5]" />
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    Your formatted article will render here in real-time
+                  </p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto">
+                    Type directly in Markdown: headings, bold, italic, code blocks, tables, callouts, and media embeds.
                   </p>
                 </div>
               )}
@@ -1172,67 +1105,6 @@ export function ChapterEditorPage() {
                 <Button type="submit">Insert Bookmark</Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 5: Starter Templates Picker (No AI Icons) */}
-      {showTemplateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#11131a] p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <LayoutTemplate className="h-5 w-5 text-indigo-500" />
-                  Choose a Starter Template
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Pre-structured blueprints designed for clear technical writing and diagrams.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowTemplateModal(false)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {STARTER_TEMPLATES.map((tmpl, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => handleApplyTemplate(tmpl.content, tmpl.title)}
-                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-all cursor-pointer"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                        {tmpl.title}
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {tmpl.desc}
-                      </p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="text-xs group-hover:text-indigo-600">
-                      Use
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowTemplateModal(false)}
-              >
-                Close
-              </Button>
-            </div>
           </div>
         </div>
       )}
