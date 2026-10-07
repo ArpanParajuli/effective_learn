@@ -4,28 +4,28 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 cursor-pointer shadow-sm active:scale-[0.98]',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 dark:focus-visible:ring-slate-300 disabled:pointer-events-none disabled:opacity-50 cursor-pointer shadow-xs active:scale-[0.98]',
   {
     variants: {
       variant: {
         default:
-          'bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-500/20 shadow-md',
+          'bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100',
         destructive:
-          'bg-red-600 text-white hover:bg-red-500 shadow-red-500/20',
+          'bg-red-600 text-white hover:bg-red-500',
         outline:
-          'border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-100',
+          'border border-slate-200 dark:border-slate-800 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100',
         secondary:
-          'bg-slate-800 text-slate-200 hover:bg-slate-700',
+          'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700',
         ghost:
-          'hover:bg-slate-800/70 text-slate-300 hover:text-white',
+          'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-none',
         link:
-          'text-indigo-400 underline-offset-4 hover:underline shadow-none',
+          'text-indigo-600 dark:text-indigo-400 underline-offset-4 hover:underline shadow-none',
       },
       size: {
-        default: 'h-10 px-4 py-2',
+        default: 'h-9 px-4 py-2',
         sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-12 rounded-lg px-6 text-base',
-        icon: 'h-10 w-10',
+        lg: 'h-11 rounded-lg px-6 text-base',
+        icon: 'h-9 w-9',
       },
     },
     defaultVariants: {

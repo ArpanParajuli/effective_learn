@@ -5,9 +5,8 @@ namespace EffectiveLearn.Application.Common.Interfaces;
 
 public interface IApplicationDbContext
 {
-    DbSet<Deck> Decks { get; }
-    DbSet<Flashcard> Flashcards { get; }
-    DbSet<StudySessionLog> StudySessionLogs { get; }
+    DbSet<Subject> Subjects { get; }
+    DbSet<Chapter> Chapters { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -1,6 +1,23 @@
-# EffectiveLearn 🧠
+# EffectiveLearn 📖
 
-**EffectiveLearn** is a production-grade, full-stack platform engineered to maximize knowledge retention and study efficiency. By combining **Spaced Repetition (SRS via SuperMemo SM-2 / FSRS principles)**, **Active Recall**, and structured **Knowledge Roadmaps**, EffectiveLearn transforms passive studying into active, permanent mastery.
+**EffectiveLearn** is a production-grade, full-stack knowledge management and learning journal platform. It enables engineers, students, and writers to organize complex learning domains into **Subjects** and detailed **Chapters**, complete with embedded video lectures, website preview bookmarks, code snippets, and rich external links.
+
+---
+
+## ✨ Core Features
+
+* **Hierarchical Learning Organization**:
+  * **Subjects / Categories**: Organize by domain (e.g. *ASP.NET Core 10*, *System Design*, *PostgreSQL*, *DevOps*).
+  * **Chapters & Articles**: Write modular notes and articles inside each subject with ordered chapter navigation.
+* **Rich Embeds & Writing Canvas**:
+  * 🎥 **Embedded Video Lectures**: Insert responsive video players (YouTube, Vimeo, HTML5 videos) directly inside articles with `[video:URL]`.
+  * 🌐 **Website Preview Bookmarks**: Embed rich link cards with `[website:URL|Title]`.
+  * 🔗 **Hyperlinks & Code**: Standard markdown links and syntax-highlighted code blocks with one-click copying.
+  * 👁 **Authoring Tools**: Quick insert toolbar with real-time **Write**, **Preview**, and **Split View** modes.
+* **Clean Human Design**:
+  * Inspired by Notion, Canva, Substack, and Medium — minimal, readable, and distraction-free.
+  * Native **Light & Dark Theme** toggle with persistent user preferences.
+  * Accessible **shadcn/ui** components and crisp typography.
 
 ---
 
@@ -8,60 +25,41 @@
 
 ### Backend (.NET 10 LTS Clean Architecture)
 * **Domain Layer** (`backend/src/EffectiveLearn.Domain`):
-  * Aggregate roots: `Deck`, `Flashcard`, `StudySessionLog`.
-  * Encapsulated domain logic: SM-2 algorithm calculating interval progression, ease factors, and card states (`New`, `Learning`, `Review`, `Mastered`).
+  * Entities: `Subject` (Categories) and `Chapter` (Rich articles/blogs with embeds).
 * **Application Layer** (`backend/src/EffectiveLearn.Application`):
-  * CQRS pattern mediated by `MediatR`.
+  * CQRS mediated by `MediatR` (`GetSubjectsQuery`, `GetChaptersBySubjectQuery`, `CreateChapterCommand`, etc.).
   * Automated validation pipeline with `FluentValidation`.
-  * Decoupled interfaces (`IApplicationDbContext`).
 * **Infrastructure Layer** (`backend/src/EffectiveLearn.Infrastructure`):
-  * PostgreSQL 17 integration via Entity Framework Core 10 (`Npgsql.EntityFrameworkCore.PostgreSQL`).
-  * Automatic migration and development seeding.
+  * PostgreSQL 17 persistence via Entity Framework Core 10 (`Npgsql.EntityFrameworkCore.PostgreSQL`).
+  * Automated database schema migrations and initial seed data.
 * **API Layer** (`backend/src/EffectiveLearn.Api`):
-  * RESTful endpoints with OpenAPI/Swagger.
-  * Structured logging via `Serilog`.
-  * RFC 7807 `ProblemDetails` global exception handling middleware.
-  * Health probes at `/health/live` and `/health/ready`.
+  * REST controllers (`SubjectsController`, `ChaptersController`).
+  * RFC 7807 `ProblemDetails` exception handling middleware.
+  * Serilog structured logging and Health Check probes (`/health/live`, `/health/ready`).
 
 ### Frontend (Vite + React 19 + TypeScript + Tailwind CSS)
-* **Design & Styling**:
-  * Tailwind CSS v4 with bespoke dark-mode theme tokens.
-  * `shadcn/ui` accessible UI primitives.
-  * `lucide-react` iconography.
-  * Sleek glassmorphism and micro-animations.
-* **Scalable Feature-Sliced Structure**:
-  * `src/features/overview`: Learning streaks, metrics, and daily review triggers.
-  * `src/features/decks`: Deck catalog, search, tag filters, and deck creation modal.
-  * `src/features/study`: Active Recall study deck session, flashcard flip mechanics, and SM-2 scoring controls.
-  * `src/features/analytics`: Forgetting curve index, SRS memory stages, weekly review charts, and habit heatmaps.
-* **Server State & Data Layer**:
-  * TanStack Query v5 (`@tanstack/react-query`) with caching and optimistic updates.
-  * Resilient Axios client with auth interceptors and error extraction.
+* **Framework**: React 19 + TypeScript on Vite 8.
+* **Styling**: Tailwind CSS v4 with clean neutral palette (no gamified purple glows), supporting both Light and Dark modes.
+* **Components**: `shadcn/ui` UI primitives, `lucide-react` iconography, `sonner` notifications.
+* **State & Server Cache**: TanStack Query v5 (`@tanstack/react-query`).
+* **Rich Content Renderer**: Custom markdown and media embed parser supporting embedded YouTube lectures and website cards.
 
 ---
 
 ## 🚀 Quick Start (Local Development)
 
-### Prerequisites
-* [.NET 10 SDK](https://dotnet.microsoft.com/download)
-* [Node.js 24+](https://nodejs.org/) & `npm`
-* [Docker Desktop](https://www.docker.com/) (optional for full container run)
-
 ### 1. Environment Setup
-Copy the environment template and adjust any custom values:
 ```bash
 cp .env.example .env
 ```
 
-### 2. Run with Docker Compose (Recommended)
-Launch PostgreSQL, .NET 10 API, and Nginx React frontend in isolated containers:
+### 2. Run with Docker Compose
 ```bash
 docker compose up --build
 ```
 * **Frontend Web App**: [http://localhost:3000](http://localhost:3000)
 * **Backend API**: [http://localhost:5000](http://localhost:5000)
 * **API Health Check**: [http://localhost:5000/health/live](http://localhost:5000/health/live)
-* **PostgreSQL**: `localhost:5432`
 
 ---
 
@@ -86,32 +84,17 @@ cd frontend
 npm install
 npm run dev
 ```
-The frontend dev server runs at [http://localhost:5173](http://localhost:5173) and proxies `/api` requests to the .NET backend.
 
 ---
 
-## 🔒 Security & Secret Hygiene
+## 🔒 Security & CI/CD Pipelines
 
-1. **Zero Secret Leakage**:
-   * All sensitive tokens, database passwords, and signing keys are read exclusively from environment variables.
-   * Root `.gitignore` prevents any `.env`, `.suo`, `.user`, `bin/`, `obj/`, or `node_modules/` files from reaching version control.
-2. **Hardened Docker Containers**:
-   * Backend container executes under unprivileged `.NET` user (`USER app`).
-   * Frontend serves static assets via `nginxinc/nginx-unprivileged:alpine-slim`.
-   * Production Nginx enforces strict security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`).
-3. **Automated CI Secret Scanning**:
-   * GitHub Actions runs `gitleaks` on all commits and pull requests to prevent credential leaks.
-
----
-
-## ⚙️ GitHub Actions CI/CD Pipeline
-
-* **Continuous Integration (`.github/workflows/ci.yml`)**:
-  * **Frontend**: Installs dependencies (`npm ci`), runs TypeScript compiler check (`tsc -b`), and verifies production bundle build.
-  * **Backend**: Restores packages, builds in `Release` mode, runs unit tests with coverage reporting.
-  * **Security**: Runs Gitleaks secret scanning across the repository history.
-* **Continuous Deployment (`.github/workflows/cd.yml`)**:
-  * Triggers on releases or pushes to `main`.
-  * Builds multi-stage Docker images using GitHub Actions caching (`type=gha`).
-  * Tags images with semantic versions and Git SHAs.
-  * Pushes images to GitHub Container Registry (`ghcr.io`) using the scoped repository `GITHUB_TOKEN`.
+* **Zero Secret Leakage**:
+  * All credentials injected via environment variables.
+  * Git ignore rules prevent committing secrets, `node_modules`, or build artifacts.
+* **Hardened Multi-Stage Containers**:
+  * Backend runs under unprivileged non-root user (`USER app`).
+  * Frontend served via unprivileged Nginx with security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`).
+* **GitHub Actions CI/CD**:
+  * `.github/workflows/ci.yml`: Automated TypeScript check, production build, .NET tests, and Gitleaks secret scan.
+  * `.github/workflows/cd.yml`: Multi-stage Docker image build and push to GitHub Container Registry (`ghcr.io`).

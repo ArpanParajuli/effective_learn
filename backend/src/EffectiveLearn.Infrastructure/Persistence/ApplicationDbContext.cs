@@ -12,9 +12,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     {
     }
 
-    public DbSet<Deck> Decks => Set<Deck>();
-    public DbSet<Flashcard> Flashcards => Set<Flashcard>();
-    public DbSet<StudySessionLog> StudySessionLogs => Set<StudySessionLog>();
+    public DbSet<Subject> Subjects => Set<Subject>();
+    public DbSet<Chapter> Chapters => Set<Chapter>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

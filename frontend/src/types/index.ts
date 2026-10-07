@@ -1,39 +1,64 @@
-export interface Deck {
+export interface Subject {
   id: string
   title: string
+  slug: string
   description: string
-  totalCards: number
-  dueCards: number
-  masteryPercentage: number
-  tags: string[]
-  createdAt: string
-  updatedAt: string
+  icon: string
+  displayOrder: number
+  chapterCount: number
+  createdAtUtc: string
 }
 
-export interface Flashcard {
+export interface ChapterSummary {
   id: string
-  deckId: string
-  frontContent: string
-  backContent: string
-  hint?: string
-  easeFactor: number
-  repetitions: number
-  intervalDays: number
-  nextReviewDate: string
-  status: 'New' | 'Learning' | 'Review' | 'Mastered'
+  subjectId: string
+  title: string
+  slug: string
+  summary: string
+  orderIndex: number
+  estimatedMinutes: number
+  isPublished: boolean
+  createdAtUtc: string
 }
 
-export type ReviewRating = 1 | 2 | 3 | 4 | 5 // 1: Again, 2: Hard, 3: Good, 4: Easy, 5: Perfect
-
-export interface StudySessionResult {
-  cardId: string
-  rating: ReviewRating
-  responseTimeMs: number
+export interface ChapterDetail {
+  id: string
+  subjectId: string
+  subjectTitle: string
+  title: string
+  slug: string
+  summary: string
+  content: string
+  orderIndex: number
+  estimatedMinutes: number
+  isPublished: boolean
+  createdAtUtc: string
+  updatedAtUtc?: string
 }
 
-export interface LearningStats {
-  totalReviewedToday: number
-  currentStreakDays: number
-  retentionRate: number
-  totalMasteredCards: number
+export interface CreateSubjectPayload {
+  title: string
+  description: string
+  icon?: string
+  displayOrder?: number
+}
+
+export interface CreateChapterPayload {
+  subjectId: string
+  title: string
+  summary: string
+  content: string
+  orderIndex?: number
+  estimatedMinutes?: number
+  isPublished?: boolean
+}
+
+export interface UpdateChapterPayload {
+  id: string
+  title: string
+  summary: string
+  content: string
+  orderIndex: number
+  estimatedMinutes: number
+  isPublished: boolean
 }
