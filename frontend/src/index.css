@@ -131,9 +131,17 @@ body {
 
 /* Reader Typography Styles */
 .prose-reader {
-  font-size: 1.0625rem;
+  font-size: inherit;
+  font-family: inherit;
   line-height: 1.8;
   color: var(--foreground);
+}
+
+.prose-reader p {
+  font-size: 1em;
+  font-family: inherit;
+  margin-top: 0.9em;
+  margin-bottom: 0.9em;
 }
 
 .prose-reader strong {
@@ -156,8 +164,8 @@ body {
 }
 
 .prose-reader th {
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
+  padding: 0.75em 1em;
+  font-size: 0.8em;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -167,60 +175,55 @@ body {
 }
 
 .prose-reader td {
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.75em 1em;
+  font-size: 0.9em;
   border-bottom: 1px solid var(--border);
   color: var(--foreground);
 }
 
 .prose-reader h1 {
-  font-size: 2.25rem;
+  font-size: 1.9em;
   font-weight: 700;
   line-height: 1.25;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
+  margin-top: 1.4em;
+  margin-bottom: 0.7em;
 }
 
 .prose-reader h2 {
-  font-size: 1.5rem;
+  font-size: 1.45em;
   font-weight: 600;
   line-height: 1.35;
-  margin-top: 2rem;
-  margin-bottom: 0.75rem;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.4em;
 }
 
 .prose-reader h3 {
-  font-size: 1.25rem;
+  font-size: 1.2em;
   font-weight: 600;
   line-height: 1.4;
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.prose-reader p {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+  margin-top: 1.3em;
+  margin-bottom: 0.5em;
 }
 
 .prose-reader ul {
   list-style-type: disc;
-  padding-left: 1.5rem;
-  margin-top: 0.75rem;
-  margin-bottom: 0.75rem;
+  padding-left: 1.5em;
+  margin-top: 0.7em;
+  margin-bottom: 0.7em;
 }
 
 .prose-reader ol {
   list-style-type: decimal;
-  padding-left: 1.5rem;
-  margin-top: 0.75rem;
-  margin-bottom: 0.75rem;
+  padding-left: 1.5em;
+  margin-top: 0.7em;
+  margin-bottom: 0.7em;
 }
 
 .prose-reader li {
-  margin-top: 0.25rem;
-  margin-bottom: 0.25rem;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
 }
 
 .prose-reader pre {

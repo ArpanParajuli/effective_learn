@@ -14,8 +14,11 @@ import 'prismjs/components/prism-docker'
 import 'prismjs/components/prism-markdown'
 import 'prismjs/components/prism-css'
 
-interface RichContentRendererProps {
+export interface RichContentRendererProps {
   content: string
+  fontFamily?: 'mono' | 'sans' | 'serif'
+  fontSize?: number
+  className?: string
 }
 
 function parseYouTubeId(url: string): string | null {
@@ -53,7 +56,12 @@ function highlightCode(code: string, language: string): string {
     .replace(/>/g, '&gt;')
 }
 
-export function RichContentRenderer({ content }: RichContentRendererProps) {
+export function RichContentRenderer({
+  content,
+  fontFamily,
+  fontSize,
+  className,
+}: RichContentRendererProps) {
   const [copiedIndex, setCopiedIndex] = React.useState<number | null>(null)
   const [lightboxImage, setLightboxImage] = React.useState<string | null>(null)
 
@@ -508,7 +516,18 @@ export function RichContentRenderer({ content }: RichContentRendererProps) {
   }
 
   return (
-    <div className="prose-reader space-y-4">
+    <div
+      className={`prose-reader space-y-4 ${
+        fontFamily === 'mono'
+          ? 'font-canvas-mono'
+          : fontFamily === 'sans'
+          ? 'font-canvas-sans'
+          : fontFamily === 'serif'
+          ? 'font-canvas-serif'
+          : ''
+      } ${className || ''}`}
+      style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
+    >
       {tokens.map((token, index) => renderBlockToken(token, index))}
 
       {/* Lightbox Modal */}

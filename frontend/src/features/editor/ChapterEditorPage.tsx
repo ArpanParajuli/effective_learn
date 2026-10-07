@@ -67,11 +67,11 @@ export function ChapterEditorPage() {
   const [copiedMarkdown, setCopiedMarkdown] = React.useState(false)
   const [isDirty, setIsDirty] = React.useState(false)
 
-  // Custom typography preferences: Mono, Sans, or Serif font + size control
+  // Custom typography preferences: Mono, Sans, or Serif font + size control (12px - 26px)
   const [editorFont, setEditorFont] = React.useState<'mono' | 'sans' | 'serif'>('mono')
-  const [editorFontSize, setEditorFontSize] = React.useState<number>(14)
+  const [editorFontSize, setEditorFontSize] = React.useState<number>(16)
 
-  // Smooth typing: Deferred content for live preview so 120 FPS typing never stutters
+  // Smooth typing: Deferred content for live preview so high-frequency typing never stutters
   const deferredContent = React.useDeferredValue(content)
 
   // Modals for inserting media & code
@@ -188,49 +188,291 @@ export function ChapterEditorPage() {
     })
   }
 
-  // Smart Insert / Toggle Text at Cursor
-  const insertTextAtCursor = (prefix: string, suffix: string = '', defaultText: string = '') => {
+  // 1. Rock-Solid Inline Formatter (Bold, Italic, Strikethrough, Inline Code)
+  // Handles highlighted selection, selection already inside tags, word under cursor, or cursor in space
+  const handleToggleInline = (prefix: string, suffix: string, placeholder: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const text = content
+    const hasSelection = start !== end
+
+    if (hasSelection) {
+      const selected = text.slice(start, end)
+      // Check if selected text is itself wrapped in prefix & suffix
+      if (
+        selected.startsWith(prefix) &&
+        selected.endsWith(suffix) &&
+        selected.length >= prefix.length + suffix.length
+      ) {
+        const unwrapped = selected.slice(prefix.length, -suffix.length)
+        const newText = text.slice(0, start) + unwrapped + text.slice(end)
+        setContent(newText)
+        setIsDirty(true)
+        setTimeout(() => {
+          textarea.focus()
+          textarea.setSelectionRange(start, start + unwrapped.length)
+        }, 10)
+        return
+      }
+
+      // Check if characters immediately surrounding the selection match prefix & suffix
+      const beforePrefix = text.slice(Math.max(0, start - prefix.length), start)
+      const afterSuffix = text.slice(end, end + suffix.length)
+      if (beforePrefix === prefix && afterSuffix === suffix) {
+        const newText = text.slice(0, start - prefix.length) + selected + text.slice(end + suffix.length)
+        setContent(newText)
+        setIsDirty(true)
+        setTimeout(() => {
+          textarea.focus()
+          textarea.setSelectionRange(start - prefix.length, end - prefix.length)
+        }, 10)
+        return
+      }
+
+      // Wrap the highlighted selection
+      const wrapped = prefix + selected + suffix
+      const newText = text.slice(0, start) + wrapped + text.slice(end)
+      setContent(newText)
+      setIsDirty(true)
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start, start + wrapped.length)
+      }, 10)
+      return
+    }
+
+    // No selection: detect the word under or touching the cursor
+    let wordStart = start
+    let wordEnd = start
+
+    while (wordStart > 0 && !/\s/.test(text[wordStart - 1])) {
+      wordStart--
+    }
+    while (wordEnd < text.length && !/\s/.test(text[wordEnd])) {
+      wordEnd++
+    }
+
+    // If cursor is on a word
+    if (wordStart < wordEnd) {
+      const word = text.slice(wordStart, wordEnd)
+
+      // Check if word is already surrounded by prefix & suffix
+      const beforeWord = text.slice(Math.max(0, wordStart - prefix.length), wordStart)
+      const afterWord = text.slice(wordEnd, wordEnd + suffix.length)
+      if (beforeWord === prefix && afterWord === suffix) {
+        // Unwrap word
+        const newText = text.slice(0, wordStart - prefix.length) + word + text.slice(wordEnd + suffix.length)
+        setContent(newText)
+        setIsDirty(true)
+        setTimeout(() => {
+          textarea.focus()
+          textarea.setSelectionRange(wordStart - prefix.length, wordEnd - prefix.length)
+        }, 10)
+        return
+      }
+
+      if (word.startsWith(prefix) && word.endsWith(suffix) && word.length >= prefix.length + suffix.length) {
+        const unwrapped = word.slice(prefix.length, -suffix.length)
+        const newText = text.slice(0, wordStart) + unwrapped + text.slice(wordEnd)
+        setContent(newText)
+        setIsDirty(true)
+        setTimeout(() => {
+          textarea.focus()
+          textarea.setSelectionRange(wordStart, wordStart + unwrapped.length)
+        }, 10)
+        return
+      }
+
+      // Wrap the word
+      const wrapped = prefix + word + suffix
+      const newText = text.slice(0, wordStart) + wrapped + text.slice(wordEnd)
+      setContent(newText)
+      setIsDirty(true)
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(wordStart, wordStart + wrapped.length)
+      }, 10)
+      return
+    }
+
+    // Cursor is on whitespace or empty line: insert template with placeholder selected
+    const inserted = prefix + placeholder + suffix
+    const newText = text.slice(0, start) + inserted + text.slice(end)
+    setContent(newText)
+    setIsDirty(true)
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + placeholder.length)
+    }, 10)
+  }
+
+  // 2. Rock-Solid Line Heading Formatter (H1, H2, H3)
+  // Transforms the current line into a heading or toggles it back to normal text
+  const handleToggleHeading = (level: 1 | 2 | 3) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const text = content
+    const targetPrefix = '#'.repeat(level) + ' '
+
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1
+    let lineEnd = text.indexOf('\n', start)
+    if (lineEnd === -1) lineEnd = text.length
+
+    const currentLine = text.substring(lineStart, lineEnd)
+
+    let newLine = currentLine
+    if (currentLine.startsWith(targetPrefix)) {
+      // Toggle off: strip the target heading
+      newLine = currentLine.slice(targetPrefix.length)
+    } else if (/^#{1,6}\s+/.test(currentLine)) {
+      // Replace existing heading with the target heading
+      newLine = currentLine.replace(/^#{1,6}\s+/, targetPrefix)
+    } else {
+      // Prepend heading to the line
+      newLine = targetPrefix + currentLine
+    }
+
+    const newText = text.slice(0, lineStart) + newLine + text.slice(lineEnd)
+    setContent(newText)
+    setIsDirty(true)
+
+    const offsetDiff = newLine.length - currentLine.length
+    const newCursor = Math.max(lineStart, Math.min(newText.length, start + offsetDiff))
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(newCursor, newCursor)
+    }, 10)
+  }
+
+  // 3. Rock-Solid List Formatter (Bullet `-`, Numbered `1.`)
+  // Applies bullet or ordered numbering across current line or all selected lines
+  const handleToggleList = (type: 'bullet' | 'ordered') => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const text = content
+
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1
+    let lineEnd = text.indexOf('\n', end)
+    if (lineEnd === -1) lineEnd = text.length
+
+    const lines = text.substring(lineStart, lineEnd).split('\n')
+    const allHaveBullet = lines.every((l) => /^(\s*)[-*]\s+/.test(l))
+    const allHaveOrdered = lines.every((l) => /^(\s*)\d+\.\s+/.test(l))
+
+    let newLines: string[] = []
+
+    if (type === 'bullet') {
+      if (allHaveBullet) {
+        // Toggle off
+        newLines = lines.map((l) => l.replace(/^(\s*)[-*]\s+/, '$1'))
+      } else {
+        // Apply bullet
+        newLines = lines.map((l) => {
+          const stripped = l.replace(/^(\s*)(\d+\.\s+|[-*]\s+)/, '$1')
+          return stripped.trim() ? `- ${stripped.trimStart()}` : '- '
+        })
+      }
+    } else {
+      if (allHaveOrdered) {
+        // Toggle off
+        newLines = lines.map((l) => l.replace(/^(\s*)\d+\.\s+/, '$1'))
+      } else {
+        // Apply ordered numbers
+        newLines = lines.map((l, idx) => {
+          const stripped = l.replace(/^(\s*)(\d+\.\s+|[-*]\s+)/, '$1')
+          return stripped.trim() ? `${idx + 1}. ${stripped.trimStart()}` : `${idx + 1}. `
+        })
+      }
+    }
+
+    const replacement = newLines.join('\n')
+    const newText = text.slice(0, lineStart) + replacement + text.slice(lineEnd)
+    setContent(newText)
+    setIsDirty(true)
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(lineStart, lineStart + replacement.length)
+    }, 10)
+  }
+
+  // 4. Rock-Solid Callout Box Formatter (`> [!NOTE]`)
+  const handleToggleCallout = () => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const text = content
+
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1
+    let lineEnd = text.indexOf('\n', end)
+    if (lineEnd === -1) lineEnd = text.length
+
+    const target = text.substring(lineStart, lineEnd)
+
+    if (target.startsWith('> [!NOTE]')) {
+      const unwrapped = target
+        .replace(/^>\s*\[!NOTE\]\n?/m, '')
+        .replace(/^>\s?/gm, '')
+      const newText = text.slice(0, lineStart) + unwrapped + text.slice(lineEnd)
+      setContent(newText)
+      setIsDirty(true)
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(lineStart, lineStart + unwrapped.length)
+      }, 10)
+      return
+    }
+
+    const lines = target.split('\n')
+    const calloutBody = lines.map((l) => `> ${l.replace(/^>\s?/, '')}`).join('\n')
+    const callout = `> [!NOTE]\n${calloutBody || '> Key architectural takeaway or core concept.'}`
+
+    const newText = text.slice(0, lineStart) + callout + text.slice(lineEnd)
+    setContent(newText)
+    setIsDirty(true)
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(lineStart, lineStart + callout.length)
+    }, 10)
+  }
+
+  // 5. Clean Block Insertion (Table, Divider, Media)
+  const handleInsertBlock = (blockText: string) => {
     const textarea = textareaRef.current
     if (!textarea) {
-      setContent((prev) => prev + '\n' + prefix + defaultText + suffix)
+      setContent((prev) => prev + '\n\n' + blockText + '\n\n')
       setIsDirty(true)
       return
     }
 
     const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const hasSelection = start !== end
-    const selected = hasSelection ? content.substring(start, end) : defaultText
+    const text = content
+    const before = text.slice(0, start)
+    const after = text.slice(start)
 
-    // Check if selected text is already wrapped in prefix & suffix (toggle off)
-    if (hasSelection && suffix && selected.startsWith(prefix) && selected.endsWith(suffix)) {
-      const unwrapped = selected.slice(prefix.length, -suffix.length)
-      const before = content.substring(0, start)
-      const after = content.substring(end)
-      setContent(before + unwrapped + after)
-      setIsDirty(true)
-      setTimeout(() => {
-        textarea.focus()
-        textarea.setSelectionRange(start, start + unwrapped.length)
-      }, 10)
-      return
-    }
+    const needLeading = before.length > 0 && !before.endsWith('\n\n')
+    const leading = needLeading ? (before.endsWith('\n') ? '\n' : '\n\n') : ''
+    const needTrailing = after.length > 0 && !after.startsWith('\n\n')
+    const trailing = needTrailing ? (after.startsWith('\n') ? '\n' : '\n\n') : ''
 
-    const replacement = prefix + selected + suffix
-    const before = content.substring(0, start)
-    const after = content.substring(end)
-
-    setContent(before + replacement + after)
+    const snippet = leading + blockText + trailing
+    const newText = before + snippet + after
+    setContent(newText)
     setIsDirty(true)
 
+    const newCursor = start + leading.length + blockText.length
     setTimeout(() => {
       textarea.focus()
-      if (!hasSelection && defaultText) {
-        textarea.setSelectionRange(start + prefix.length, start + prefix.length + defaultText.length)
-      } else {
-        const newCursorPos = start + replacement.length
-        textarea.setSelectionRange(newCursorPos, newCursorPos)
-      }
+      textarea.setSelectionRange(newCursor, newCursor)
     }, 10)
   }
 
@@ -260,13 +502,13 @@ export function ChapterEditorPage() {
     // Ctrl+B bold shortcut
     if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
       e.preventDefault()
-      insertTextAtCursor('**', '**', 'bold text')
+      handleToggleInline('**', '**', 'bold text')
     }
 
     // Ctrl+I italic shortcut
     if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
       e.preventDefault()
-      insertTextAtCursor('*', '*', 'italic text')
+      handleToggleInline('*', '*', 'italic text')
     }
   }
 
@@ -279,12 +521,12 @@ export function ChapterEditorPage() {
     setTimeout(() => setCopiedMarkdown(false), 2000)
   }
 
-  // Insert Handlers
+  // Insert Media Handlers
   const handleInsertImage = (e: React.FormEvent) => {
     e.preventDefault()
     if (!imageUrl.trim()) return
     const altText = imageAlt.trim() || 'Architecture diagram'
-    insertTextAtCursor(`\n\n![${altText}](${imageUrl.trim()})\n\n`)
+    handleInsertBlock(`![${altText}](${imageUrl.trim()})`)
     setImageUrl('')
     setImageAlt('')
     setShowImageModal(false)
@@ -294,7 +536,7 @@ export function ChapterEditorPage() {
   const handleInsertCode = (e: React.FormEvent) => {
     e.preventDefault()
     const snippet = codeSnippet.trim() || '// Write your code here'
-    insertTextAtCursor(`\n\n\`\`\`${codeLanguage}\n${snippet}\n\`\`\`\n\n`)
+    handleInsertBlock(`\`\`\`${codeLanguage}\n${snippet}\n\`\`\``)
     setCodeSnippet('')
     setShowCodeModal(false)
     toast.success(`${codeLanguage.toUpperCase()} code block inserted!`)
@@ -303,7 +545,7 @@ export function ChapterEditorPage() {
   const handleInsertVideo = (e: React.FormEvent) => {
     e.preventDefault()
     if (!videoUrl.trim()) return
-    insertTextAtCursor(`\n\n[video:${videoUrl.trim()}]\n\n`)
+    handleInsertBlock(`[video:${videoUrl.trim()}]`)
     setVideoUrl('')
     setShowVideoModal(false)
     toast.success('Video lecture embedded!')
@@ -313,9 +555,9 @@ export function ChapterEditorPage() {
     e.preventDefault()
     if (!websiteUrl.trim()) return
     const tag = websiteTitle.trim()
-      ? `\n\n[website:${websiteUrl.trim()}|${websiteTitle.trim()}]\n\n`
-      : `\n\n[website:${websiteUrl.trim()}]\n\n`
-    insertTextAtCursor(tag)
+      ? `[website:${websiteUrl.trim()}|${websiteTitle.trim()}]`
+      : `[website:${websiteUrl.trim()}]`
+    handleInsertBlock(tag)
     setWebsiteUrl('')
     setWebsiteTitle('')
     setShowWebsiteModal(false)
@@ -529,81 +771,81 @@ export function ChapterEditorPage() {
       </div>
 
       {/* Docked Formatting Toolbar */}
-      <div className="shrink-0 bg-slate-50/90 dark:bg-[#11131a]/90 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-1 overflow-x-auto">
+      <div className="shrink-0 bg-slate-50/90 dark:bg-[#11131a]/90 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2 overflow-x-auto">
         <div className="flex items-center gap-1 shrink-0">
           {/* Headings */}
-          <div className="flex items-center gap-0.5 pr-1 border-r border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-0.5 pr-1.5 border-r border-slate-200 dark:border-slate-800">
             <button
               type="button"
-              onClick={() => insertTextAtCursor('\n# ', '\n', 'Heading 1')}
-              title="Heading 1"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={() => handleToggleHeading(1)}
+              title="Heading 1 (# )"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Heading1 className="h-3.5 w-3.5" />
+              <Heading1 className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => insertTextAtCursor('\n## ', '\n', 'Heading 2')}
-              title="Heading 2"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={() => handleToggleHeading(2)}
+              title="Heading 2 (## )"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Heading2 className="h-3.5 w-3.5" />
+              <Heading2 className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => insertTextAtCursor('\n### ', '\n', 'Heading 3')}
-              title="Heading 3"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={() => handleToggleHeading(3)}
+              title="Heading 3 (### )"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Heading3 className="h-3.5 w-3.5" />
+              <Heading3 className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Typography */}
-          <div className="flex items-center gap-0.5 px-1 border-r border-slate-200 dark:border-slate-800">
+          {/* Inline Typography */}
+          <div className="flex items-center gap-0.5 px-1.5 border-r border-slate-200 dark:border-slate-800">
             <button
               type="button"
-              onClick={() => insertTextAtCursor('**', '**', 'bold text')}
+              onClick={() => handleToggleInline('**', '**', 'bold text')}
               title="Bold (Ctrl+B)"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Bold className="h-3.5 w-3.5" />
+              <Bold className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => insertTextAtCursor('*', '*', 'italic text')}
+              onClick={() => handleToggleInline('*', '*', 'italic text')}
               title="Italic (Ctrl+I)"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Italic className="h-3.5 w-3.5" />
+              <Italic className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => insertTextAtCursor('~~', '~~', 'strikethrough')}
-              title="Strikethrough"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={() => handleToggleInline('~~', '~~', 'strikethrough')}
+              title="Strikethrough (~~)"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Strikethrough className="h-3.5 w-3.5" />
+              <Strikethrough className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => insertTextAtCursor('`', '`', 'inlineCode')}
-              title="Inline Code"
-              className="px-1.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer text-xs font-mono font-semibold"
+              onClick={() => handleToggleInline('`', '`', 'inlineCode')}
+              title="Inline Code (`)"
+              className="h-8 px-2 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer text-xs font-mono font-semibold"
             >
               {'</>'}
             </button>
           </div>
 
           {/* Media Blocks */}
-          <div className="flex items-center gap-1 px-1 border-r border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1 px-1.5 border-r border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setShowCodeModal(true)}
               title="Insert Syntax-Highlighted Code Block"
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Code className="h-3.5 w-3.5 text-indigo-500" />
+              <Code className="h-4 w-4 text-indigo-500" />
               <span>Code</span>
             </button>
 
@@ -611,9 +853,9 @@ export function ChapterEditorPage() {
               type="button"
               onClick={() => setShowImageModal(true)}
               title="Insert Image / Diagram"
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
+              <ImageIcon className="h-4 w-4 text-emerald-500" />
               <span>Image</span>
             </button>
 
@@ -621,9 +863,9 @@ export function ChapterEditorPage() {
               type="button"
               onClick={() => setShowVideoModal(true)}
               title="Embed Video Lecture"
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Film className="h-3.5 w-3.5 text-rose-500" />
+              <Film className="h-4 w-4 text-rose-500" />
               <span>Video</span>
             </button>
 
@@ -631,97 +873,93 @@ export function ChapterEditorPage() {
               type="button"
               onClick={() => setShowWebsiteModal(true)}
               title="Insert Website Preview Bookmark"
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Globe className="h-3.5 w-3.5 text-sky-500" />
+              <Globe className="h-4 w-4 text-sky-500" />
               <span>Bookmark</span>
             </button>
           </div>
 
-          {/* Callouts, Lists, Tables */}
+          {/* Callouts, Lists, Tables, Divider */}
           <div className="flex items-center gap-0.5 pl-1">
             <button
               type="button"
-              onClick={() =>
-                insertTextAtCursor(
-                  '\n> [!NOTE]\n> ',
-                  '\n\n',
-                  'Important note or key takeaway here.'
-                )
-              }
-              title="Obsidian Callout Box"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={handleToggleCallout}
+              title="Obsidian Callout Box (> [!NOTE])"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Quote className="h-3.5 w-3.5" />
+              <Quote className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => insertTextAtCursor('\n- ', '\n', 'Bullet point')}
-              title="Bullet List"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={() => handleToggleList('bullet')}
+              title="Bullet List (- )"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <List className="h-3.5 w-3.5" />
+              <List className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => insertTextAtCursor('\n1. ', '\n', 'Step one')}
-              title="Numbered List"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={() => handleToggleList('ordered')}
+              title="Numbered List (1. )"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <ListOrdered className="h-3.5 w-3.5" />
+              <ListOrdered className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() =>
-                insertTextAtCursor(
-                  '\n| Concept | Architectural Role | Status |\n| :--- | :--- | :--- |\n| Clean Architecture | Decouples domain core from external infra | Verified |\n| PostgreSQL 17 | Relational persistence with BRIN partitioning | Active |\n| Prism Engine | Multi-language syntax highlighting | Complete |\n\n'
+                handleInsertBlock(
+                  '| Concept | Architectural Role | Status |\n| :--- | :--- | :--- |\n| Clean Architecture | Decouples domain core from infra | Verified |\n| PostgreSQL 17 | Relational persistence with BRIN | Active |\n| Prism Engine | Multi-language syntax highlighting | Complete |'
                 )
               }
               title="Insert Markdown Table"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <TableIcon className="h-3.5 w-3.5" />
+              <TableIcon className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => insertTextAtCursor('\n---\n\n')}
-              title="Horizontal Divider"
-              className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={() => handleInsertBlock('---')}
+              title="Horizontal Divider (---)"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Minus className="h-3.5 w-3.5" />
+              <Minus className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Right Action: Font Selector & Copy Source */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Custom Font Picker */}
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/80 text-xs">
-            <Type className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+        {/* Right Action: Enhanced Typography Controls & Copy Source */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Enhanced Font Family & Size Controller */}
+          <div className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+            <Type className="h-4 w-4 text-indigo-500 shrink-0" />
             <select
               value={editorFont}
               onChange={(e) => setEditorFont(e.target.value as any)}
-              className="bg-transparent text-[11px] font-medium text-slate-800 dark:text-slate-200 border-0 py-0 pl-0 pr-1 focus:outline-hidden cursor-pointer"
+              className="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-200 border-0 py-0 pl-0 pr-1 focus:outline-hidden cursor-pointer"
             >
-              <option value="mono" className="dark:bg-[#11131a]">Mono (Code)</option>
-              <option value="sans" className="dark:bg-[#11131a]">Sans (Clean)</option>
-              <option value="serif" className="dark:bg-[#11131a]">Serif (Book)</option>
+              <option value="mono" className="dark:bg-[#11131a]">Mono (Fira/JetBrains)</option>
+              <option value="sans" className="dark:bg-[#11131a]">Sans (Inter Clean)</option>
+              <option value="serif" className="dark:bg-[#11131a]">Serif (Lora Book)</option>
             </select>
-            <div className="flex items-center gap-0.5 pl-1 border-l border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 font-mono">
+            <div className="flex items-center gap-1 pl-2 border-l border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setEditorFontSize((s) => Math.max(12, s - 1))}
                 title="Decrease font size"
-                className="px-1 py-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-6 w-6 flex items-center justify-center rounded-md text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                -
+                −
               </button>
-              <span className="w-3 text-center">{editorFontSize}</span>
+              <span className="min-w-6 text-center text-xs font-semibold font-mono text-slate-700 dark:text-slate-300">
+                {editorFontSize}px
+              </span>
               <button
                 type="button"
-                onClick={() => setEditorFontSize((s) => Math.min(22, s + 1))}
+                onClick={() => setEditorFontSize((s) => Math.min(26, s + 1))}
                 title="Increase font size"
-                className="px-1 py-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="h-6 w-6 flex items-center justify-center rounded-md text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 +
               </button>
@@ -732,17 +970,17 @@ export function ChapterEditorPage() {
             type="button"
             onClick={handleCopyMarkdown}
             title="Copy Raw Markdown"
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             {copiedMarkdown ? (
               <>
                 <Check className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-[11px] text-emerald-500 font-medium">Copied</span>
+                <span className="text-xs text-emerald-500 font-semibold">Copied</span>
               </>
             ) : (
               <>
                 <Copy className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline text-[11px]">Copy Source</span>
+                <span className="hidden sm:inline text-xs">Copy Source</span>
               </>
             )}
           </button>
@@ -770,11 +1008,11 @@ export function ChapterEditorPage() {
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[11px]">
-                <span>Tab indents 2 spaces</span>
+                <span>Tab: 2 spaces</span>
                 <span>•</span>
-                <span>Ctrl+B Bold</span>
+                <span>Ctrl+B: Bold</span>
                 <span>•</span>
-                <span>Ctrl+S Save</span>
+                <span>Ctrl+S: Save</span>
               </div>
             </div>
 
@@ -818,7 +1056,7 @@ export function ChapterEditorPage() {
           </div>
         )}
 
-        {/* Live Article Preview Pane */}
+        {/* Live Article Preview Pane with Inherited Typography */}
         {(viewMode === 'preview' || viewMode === 'split') && (
           <div
             className={`flex flex-col h-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#090a0f] shadow-2xs overflow-hidden ${
@@ -832,6 +1070,9 @@ export function ChapterEditorPage() {
                 <span className="font-semibold uppercase tracking-wider text-[11px] text-slate-700 dark:text-slate-300">
                   Live Article Preview
                 </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  ({editorFont} • {editorFontSize}px)
+                </span>
               </div>
               <div className="flex items-center gap-2 text-[11px]">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -839,8 +1080,17 @@ export function ChapterEditorPage() {
               </div>
             </div>
 
-            {/* Preview Content Body: Dedicated inner smooth scroll */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6">
+            {/* Preview Content Body: Inherits user font and font size */}
+            <div
+              className={`flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 ${
+                editorFont === 'mono'
+                  ? 'font-canvas-mono'
+                  : editorFont === 'sans'
+                  ? 'font-canvas-sans'
+                  : 'font-canvas-serif'
+              }`}
+              style={{ fontSize: `${editorFontSize}px` }}
+            >
               {/* Optional Subject Pill */}
               {currentSubject && (
                 <div className="mb-4">
@@ -851,7 +1101,11 @@ export function ChapterEditorPage() {
               )}
 
               {deferredContent.trim() ? (
-                <RichContentRenderer content={deferredContent} />
+                <RichContentRenderer
+                  content={deferredContent}
+                  fontFamily={editorFont}
+                  fontSize={editorFontSize}
+                />
               ) : (
                 <div className="py-24 text-center space-y-3 text-slate-400">
                   <FileText className="h-10 w-10 mx-auto text-slate-300 dark:text-slate-700 stroke-[1.5]" />
