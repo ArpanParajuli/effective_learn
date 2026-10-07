@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Clock, FileText, ChevronRight, Search, X } from 'lucide-react'
+import { Plus, Clock, FileText, ChevronRight, Search, X } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchSubjects, fetchChaptersBySubject } from '@/lib/api'
 import { Card } from '@/components/ui/card'
@@ -16,6 +16,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 
 const CHAPTERS_PER_PAGE = 6
 
@@ -77,14 +85,19 @@ export function SubjectDetailView() {
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       {/* Breadcrumb / Navigation */}
-      <div>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to All Subjects
-        </Link>
-      </div>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/">Library</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{subject?.title || 'Subject'}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       {/* Subject Header */}
       <div className="border-b border-border pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -213,7 +213,7 @@ export function RichContentRenderer({
         return (
           <div
             key={index}
-            className="relative my-6 rounded-xl border border-border bg-black text-zinc-100 overflow-hidden text-xs sm:text-sm font-mono shadow-md"
+            className="relative my-6 rounded-xl border border-border bg-zinc-950 text-zinc-100 overflow-hidden text-xs sm:text-sm font-mono shadow-md"
           >
             {/* Obsidian-Style Code Window Bar */}
             <div className="flex items-center justify-between border-b border-border bg-zinc-950 px-4 py-2 text-zinc-400 text-xs select-none">
@@ -253,7 +253,7 @@ export function RichContentRenderer({
                   <div key={i}>{i + 1}</div>
                 ))}
               </div>
-              <pre className="m-0 flex-1 overflow-visible bg-transparent p-0 text-zinc-200">
+              <pre className="m-0 flex-1 overflow-visible !bg-transparent p-0 text-zinc-200">
                 <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
               </pre>
             </div>

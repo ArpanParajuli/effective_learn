@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
-  ArrowLeft,
   Film,
   Globe,
   Image as ImageIcon,
@@ -36,6 +35,14 @@ import { RichContentRenderer } from '@/components/content/RichContentRenderer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { toast } from 'sonner'
 
 const PROGRAMMING_LANGUAGES = [
@@ -638,52 +645,55 @@ export function ChapterEditorPage() {
       {/* Top Header Row: Back, Subject, Document Title, Telemetry, Mode Controller, Publish */}
       <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-2 border-b border-border">
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <Link
-            to={subjectId ? `/subjects/${subjectId}` : '/'}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors"
-            title="Back to Subject"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-
-          {/* Clean Subject Category Selector */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted/60 dark:bg-zinc-950 text-xs">
-            <FolderOpen className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hidden sm:inline">
-              Subject:
-            </span>
-            <select
-              value={subjectId}
-              onChange={(e) => {
-                setSubjectId(e.target.value)
-                setIsDirty(true)
-              }}
-              className="bg-transparent font-semibold text-foreground border-0 py-0 pl-1 pr-2 text-xs focus:outline-hidden cursor-pointer"
-            >
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id} className="dark:bg-zinc-950 text-foreground">
-                  {s.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Document Title Breadcrumb & Quick Rename */}
-          <div className="flex items-center gap-1.5 max-w-[200px] sm:max-w-[320px]">
-            <span className="text-zinc-400 dark:text-zinc-600 hidden sm:inline select-none">/</span>
-            <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden sm:inline" />
-            <input
-              type="text"
-              value={title || extractedTitle}
-              onChange={(e) => {
-                setTitle(e.target.value)
-                setIsDirty(true)
-              }}
-              placeholder="Untitled Chapter"
-              title="Chapter Title (auto-synced with # Heading in Markdown)"
-              className="bg-transparent font-semibold text-xs sm:text-sm text-foreground placeholder:text-muted-foreground border-b border-transparent hover:border-zinc-700 focus:border-indigo-500 focus:outline-hidden transition-colors truncate px-1 py-0.5"
-            />
-          </div>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/" className="flex items-center gap-1.5 transition-colors">
+                    <BookOpen className="h-4 w-4" />
+                    <span className="hidden sm:inline">Library</span>
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/60 dark:bg-zinc-950 px-2.5 py-0.5 text-xs">
+                  <FolderOpen className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                  <select
+                    value={subjectId}
+                    onChange={(e) => {
+                      setSubjectId(e.target.value)
+                      setIsDirty(true)
+                    }}
+                    className="bg-transparent font-semibold text-foreground border-0 py-0 pl-1 pr-2 text-xs focus:outline-hidden cursor-pointer"
+                  >
+                    {subjects.map((s) => (
+                      <option key={s.id} value={s.id} className="dark:bg-zinc-950 text-foreground">
+                        {s.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="flex items-center gap-1.5 max-w-[200px] sm:max-w-[320px]">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden sm:inline" />
+                  <input
+                    type="text"
+                    value={title || extractedTitle}
+                    onChange={(e) => {
+                      setTitle(e.target.value)
+                      setIsDirty(true)
+                    }}
+                    placeholder="Untitled Chapter"
+                    title="Chapter Title (auto-synced with # Heading in Markdown)"
+                    className="bg-transparent font-semibold text-xs sm:text-sm text-foreground placeholder:text-muted-foreground border-b border-transparent hover:border-zinc-700 focus:border-indigo-500 focus:outline-hidden transition-colors truncate px-1 py-0.5 w-full"
+                  />
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
           {/* Live Document Telemetry */}
           <div className="hidden lg:flex items-center gap-2">
@@ -992,7 +1002,7 @@ export function ChapterEditorPage() {
         {/* Editor Pane */}
         {(viewMode === 'write' || viewMode === 'split') && (
           <div
-            className={`flex flex-col h-full rounded-xl border border-border bg-black shadow-2xs overflow-hidden ${
+            className={`flex flex-col h-full rounded-xl border border-border bg-background shadow-2xs overflow-hidden ${
               viewMode === 'write' ? 'md:col-span-2' : ''
             }`}
           >
@@ -1059,7 +1069,7 @@ export function ChapterEditorPage() {
         {/* Live Article Preview Pane with Inherited Typography */}
         {(viewMode === 'preview' || viewMode === 'split') && (
           <div
-            className={`flex flex-col h-full rounded-xl border border-border bg-black shadow-2xs overflow-hidden ${
+            className={`flex flex-col h-full rounded-xl border border-border bg-background shadow-2xs overflow-hidden ${
               viewMode === 'preview' ? 'md:col-span-2' : ''
             }`}
           >
@@ -1246,7 +1256,7 @@ export function ChapterEditorPage() {
                   placeholder="// Paste or write initial code here..."
                   value={codeSnippet}
                   onChange={(e) => setCodeSnippet(e.target.value)}
-                  className="w-full h-36 p-3 rounded-lg border border-border bg-black text-foreground font-mono text-xs focus:outline-hidden"
+                  className="w-full h-36 p-3 rounded-lg border border-border bg-background text-foreground font-mono text-xs focus:outline-hidden"
                 />
               </div>
 

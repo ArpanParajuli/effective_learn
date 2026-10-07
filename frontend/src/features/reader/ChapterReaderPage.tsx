@@ -6,6 +6,14 @@ import { RichContentRenderer } from '@/components/content/RichContentRenderer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { toast } from 'sonner'
 
 export function ChapterReaderPage() {
@@ -82,14 +90,26 @@ export function ChapterReaderPage() {
     <article className="max-w-3xl mx-auto space-y-8 py-4">
       {/* Top Navigation Bar */}
       <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border pb-4">
-        <Link
-          to={`/subjects/${chapter.subjectId}`}
-          className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span>{chapter.subjectTitle || 'Back to Subject'}</span>
-        </Link>
-        <div className="flex items-center gap-2">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Library</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to={`/subjects/${chapter.subjectId}`}>{chapter.subjectTitle || 'Subject'}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="max-w-[150px] sm:max-w-xs truncate">{chapter.title}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleShare}
             className="flex items-center gap-1 rounded-md px-2.5 py-1 hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
