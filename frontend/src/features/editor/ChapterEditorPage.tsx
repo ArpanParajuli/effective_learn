@@ -26,9 +26,10 @@ import {
   FileCode2,
   BookOpen,
   FileText,
-  Type,
   X,
+  ChevronRight,
 } from 'lucide-react'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchSubjects, fetchChapterById, createChapter, updateChapter } from '@/lib/api'
 import { RichContentRenderer } from '@/components/content/RichContentRenderer'
@@ -43,14 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
+
 import {
   ToggleGroup,
   ToggleGroupItem,
@@ -658,109 +652,130 @@ export function ChapterEditorPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
-    <div className="flex flex-col h-full w-full mx-auto space-y-4">
-      {/* Top Header Row: Back, Subject, Document Title, Telemetry, Mode Controller, Publish */}
-      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-2 border-b border-border">
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/" className="flex items-center gap-1.5 transition-colors">
-                    <BookOpen className="h-4 w-4" />
-                    <span className="hidden sm:inline">Library</span>
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <div className="flex items-center">
-                  <Select
-                    value={subjectId}
-                    onValueChange={(val) => {
-                      setSubjectId(val)
-                      setIsDirty(true)
-                    }}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-0 bg-muted/40 font-medium focus:ring-0 px-2 gap-2 rounded-lg">
-                      <FolderOpen className="h-3.5 w-3.5 shrink-0" />
-                      <SelectValue placeholder="Select Subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.map((s) => (
-                        <SelectItem key={s.id} value={s.id} className="text-xs">
-                          {s.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="flex items-center gap-1.5 max-w-[200px] sm:max-w-[320px]">
-                  <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden sm:inline" />
-                  <input
-                    type="text"
-                    value={title || extractedTitle}
-                    onChange={(e) => {
-                      setTitle(e.target.value)
-                      setIsDirty(true)
-                    }}
-                    placeholder="Untitled Chapter"
-                    title="Chapter Title (auto-synced with # Heading in Markdown)"
-                    className="bg-transparent font-semibold text-xs sm:text-sm text-foreground placeholder:text-muted-foreground border-b border-transparent hover:border-zinc-700 focus:border-indigo-500 focus:outline-hidden transition-colors truncate px-1 py-0.5 w-full"
-                  />
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+    <div className="flex flex-col h-full w-full min-h-0 bg-background overflow-hidden">
+      {/* 1. TOP UNIFIED BAR: Sidebar toggle, Library, Subject Select, Chapter Title, Telemetry, View Mode, Publish */}
+      <header className="flex items-center justify-between gap-3 h-12 px-3 border-b border-border bg-background/95 backdrop-blur shrink-0 z-20">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <SidebarTrigger className="-ml-1 h-7 w-7 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer" />
+          <Separator orientation="vertical" className="h-4 shrink-0 hidden sm:block" />
 
+          <Link
+            to="/"
+            title="Back to Subjects Library"
+            className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            <span className="hidden md:inline font-medium">Library</span>
+          </Link>
+
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 hidden sm:block" />
+
+          {/* Subject Dropdown Selector */}
+          <div className="shrink-0">
+            <Select
+              value={subjectId}
+              onValueChange={(val) => {
+                setSubjectId(val)
+                setIsDirty(true)
+              }}
+            >
+              <SelectTrigger className="h-7 text-xs border border-border/70 bg-muted/30 hover:bg-muted/70 font-medium focus:ring-1 focus:ring-ring px-2 gap-1.5 rounded-md max-w-[130px] sm:max-w-[180px]">
+                <FolderOpen className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                <SelectValue placeholder="Select Subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {subjects.map((s) => (
+                  <SelectItem key={s.id} value={s.id} className="text-xs">
+                    {s.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+
+          {/* Chapter Title Input */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden md:inline" />
+            <input
+              type="text"
+              value={title || extractedTitle}
+              onChange={(e) => {
+                setTitle(e.target.value)
+                setIsDirty(true)
+              }}
+              placeholder="Untitled Chapter"
+              title="Chapter Title (auto-synced with # Heading in Markdown)"
+              className="bg-transparent font-semibold text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/50 border-b border-transparent hover:border-border focus:border-indigo-500 focus:outline-none transition-colors truncate px-1 py-0.5 w-full min-w-[80px]"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
           {/* Live Document Telemetry */}
-          <div className="hidden lg:flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted dark:bg-zinc-950 border border-border text-[11px] text-muted-foreground">
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/60 border border-border/70 text-[11px] text-muted-foreground whitespace-nowrap">
               <span>{wordCount} words</span>
-              <span className="text-zinc-500">•</span>
+              <span className="text-muted-foreground/40">•</span>
               <span>~{estimatedMinutes}m read</span>
             </div>
 
             {isDirty ? (
-              <span className="flex items-center gap-1.5 text-[11px] text-amber-500 font-medium">
-                <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="flex items-center gap-1.5 text-[11px] text-amber-500 font-medium whitespace-nowrap">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
                 Unsaved
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-[11px] text-emerald-500 font-medium">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="flex items-center gap-1.5 text-[11px] text-emerald-500 font-medium whitespace-nowrap">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
                 Synced
               </span>
             )}
           </div>
-        </div>
 
-        {/* View Switcher & Publish Button */}
-        <div className="flex items-center gap-2">
-          {/* Segmented Mode Control using Shadcn ToggleGroup */}
-          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'write' | 'split' | 'preview')} className="justify-start border border-border rounded-lg bg-muted/50 dark:bg-zinc-950/50 p-0.5 h-auto">
-            <ToggleGroupItem value="write" aria-label="Toggle Write" className="h-7 px-2.5 text-[11px] gap-1.5 data-[state=on]:bg-background data-[state=on]:shadow-xs">
+          {/* View Mode Segmented Controller */}
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(val) => val && setViewMode(val as 'write' | 'split' | 'preview')}
+            className="border border-border/70 rounded-md bg-muted/40 p-0.5 h-auto"
+          >
+            <ToggleGroupItem
+              value="write"
+              aria-label="Toggle Write"
+              title="Write Mode"
+              className="h-6 px-2 text-[11px] gap-1 data-[state=on]:bg-background data-[state=on]:shadow-2xs"
+            >
               <Edit3 className="h-3 w-3" />
-              <span>Write</span>
+              <span className="hidden md:inline">Write</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="split" aria-label="Toggle Split" className="h-7 px-2.5 text-[11px] gap-1.5 data-[state=on]:bg-background data-[state=on]:shadow-xs">
+            <ToggleGroupItem
+              value="split"
+              aria-label="Toggle Split"
+              title="Split View"
+              className="h-6 px-2 text-[11px] gap-1 data-[state=on]:bg-background data-[state=on]:shadow-2xs"
+            >
               <Columns className="h-3 w-3" />
-              <span>Split</span>
+              <span className="hidden md:inline">Split</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="preview" aria-label="Toggle Preview" className="h-7 px-2.5 text-[11px] gap-1.5 data-[state=on]:bg-background data-[state=on]:shadow-xs">
+            <ToggleGroupItem
+              value="preview"
+              aria-label="Toggle Preview"
+              title="Preview Mode"
+              className="h-6 px-2 text-[11px] gap-1 data-[state=on]:bg-background data-[state=on]:shadow-2xs"
+            >
               <Eye className="h-3 w-3" />
-              <span>Preview</span>
+              <span className="hidden md:inline">Preview</span>
             </ToggleGroupItem>
           </ToggleGroup>
 
+          {/* Save / Publish Button */}
           <Button
             onClick={handleSave}
             disabled={isSaving}
             size="sm"
-            className="gap-1.5 h-8 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
+            className="gap-1.5 h-7 px-3 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
           >
             <Save className="h-3.5 w-3.5" />
             <span>
@@ -770,386 +785,250 @@ export function ChapterEditorPage() {
                 ? 'Save Edits'
                 : 'Publish'}
             </span>
-            <kbd className="hidden sm:inline-block ml-0.5 px-1 py-0.2 bg-indigo-750/70 text-[10px] rounded font-mono text-indigo-200">
+            <kbd className="hidden sm:inline-block ml-0.5 px-1 py-0.2 bg-indigo-750/70 text-[9px] rounded font-mono text-indigo-200">
               Ctrl+S
             </kbd>
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Docked Formatting Toolbar */}
-      <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border shadow-xs rounded-xl px-1.5 py-1.5 flex items-center justify-between gap-2 overflow-x-auto w-full z-10 sticky top-0">
-        <div className="flex items-center gap-1 shrink-0">
+      {/* 2. DOCKED FORMATTING TOOLBAR: Headings, Markdown Tools, Typography Controls */}
+      <div className="shrink-0 h-9 px-3 border-b border-border/80 bg-muted/20 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar z-10">
+        <div className="flex items-center gap-0.5 shrink-0">
           {/* Headings */}
-          <div className="flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleToggleHeading(1)}
-              title="Heading 1 (# )"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Heading1 className="h-4 w-4" />
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" onClick={() => handleToggleHeading(1)} title="Heading 1 (#)" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Heading1 className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleToggleHeading(2)}
-              title="Heading 2 (## )"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Heading2 className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => handleToggleHeading(2)} title="Heading 2 (##)" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Heading2 className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleToggleHeading(3)}
-              title="Heading 3 (### )"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Heading3 className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => handleToggleHeading(3)} title="Heading 3 (###)" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Heading3 className="h-3.5 w-3.5" />
             </Button>
           </div>
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
+          <Separator orientation="vertical" className="h-4 mx-1" />
 
           {/* Inline Typography */}
-          <div className="flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleToggleInline('**', '**', 'bold text')}
-              title="Bold (Ctrl+B)"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Bold className="h-4 w-4" />
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" onClick={() => handleToggleInline('**', '**', 'bold text')} title="Bold (Ctrl+B)" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Bold className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleToggleInline('*', '*', 'italic text')}
-              title="Italic (Ctrl+I)"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Italic className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => handleToggleInline('*', '*', 'italic text')} title="Italic (Ctrl+I)" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Italic className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleToggleInline('~~', '~~', 'strikethrough')}
-              title="Strikethrough (~~)"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Strikethrough className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => handleToggleInline('~~', '~~', 'strikethrough')} title="Strikethrough (~~)" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Strikethrough className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleToggleInline('`', '`', 'inlineCode')}
-              title="Inline Code (`)"
-              className="h-8 px-2 text-muted-foreground hover:text-foreground text-xs font-mono font-semibold"
-            >
+            <Button variant="ghost" size="icon" onClick={() => handleToggleInline('`', '`', 'inlineCode')} title="Inline Code (`)" className="h-7 w-7 text-muted-foreground hover:text-foreground text-xs font-mono font-semibold">
               {'</>'}
             </Button>
           </div>
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
+          <Separator orientation="vertical" className="h-4 mx-1" />
 
           {/* Media Blocks */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowCodeModal(true)}
-              title="Insert Syntax-Highlighted Code Block"
-              className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              <Code className="h-4 w-4 mr-1.5" />
-              Code
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" onClick={() => setShowCodeModal(true)} title="Insert Code Block" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Code className="h-3.5 w-3.5" />
             </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowImageModal(true)}
-              title="Insert Image / Diagram"
-              className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              <ImageIcon className="h-4 w-4 mr-1.5" />
-              Image
+            <Button variant="ghost" size="icon" onClick={() => setShowImageModal(true)} title="Insert Image" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <ImageIcon className="h-3.5 w-3.5" />
             </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowVideoModal(true)}
-              title="Embed Video Lecture"
-              className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              <Film className="h-4 w-4 mr-1.5" />
-              Video
+            <Button variant="ghost" size="icon" onClick={() => setShowVideoModal(true)} title="Embed Video" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Film className="h-3.5 w-3.5" />
             </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowWebsiteModal(true)}
-              title="Insert Website Preview Bookmark"
-              className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              <Globe className="h-4 w-4 mr-1.5" />
-              Bookmark
+            <Button variant="ghost" size="icon" onClick={() => setShowWebsiteModal(true)} title="Insert Bookmark" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Globe className="h-3.5 w-3.5" />
             </Button>
           </div>
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
+          <Separator orientation="vertical" className="h-4 mx-1" />
 
           {/* Callouts, Lists, Tables, Divider */}
-          <div className="flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleToggleCallout}
-              title="Obsidian Callout Box (> [!NOTE])"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Quote className="h-4 w-4" />
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" onClick={handleToggleCallout} title="Callout Quote (> [!NOTE])" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Quote className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleToggleList('bullet')}
-              title="Bullet List (- )"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <List className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => handleToggleList('bullet')} title="Bullet List (-)" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <List className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleToggleList('ordered')}
-              title="Numbered List (1. )"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <ListOrdered className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => handleToggleList('ordered')} title="Numbered List (1.)" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <ListOrdered className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() =>
-                handleInsertBlock(
-                  '| Concept | Architectural Role | Status |\n| :--- | :--- | :--- |\n| Clean Architecture | Decouples domain core from infra | Verified |\n| PostgreSQL 17 | Relational persistence with BRIN | Active |\n| Prism Engine | Multi-language syntax highlighting | Complete |'
-                )
-              }
-              title="Insert Markdown Table"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <TableIcon className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => handleInsertBlock('| Col 1 | Col 2 | Col 3 |\n| :--- | :--- | :--- |\n| Data A | Data B | Data C |')} title="Insert Table" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <TableIcon className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleInsertBlock('---')}
-              title="Horizontal Divider (---)"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Minus className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={() => handleInsertBlock('---')} title="Horizontal Divider (---)" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Minus className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
-        {/* Right Action: Enhanced Typography Controls & Copy Source */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Enhanced Font Family & Size Controller */}
-          <div className="flex items-center h-8 rounded-lg border border-border bg-card shadow-xs px-1">
-            <div className="flex items-center gap-1.5 px-1.5 border-r border-border h-full">
-              <Type className="h-4 w-4 shrink-0" />
-              <Select value={editorFont} onValueChange={(val) => setEditorFont(val as any)}>
-                <SelectTrigger className="h-6 w-[140px] text-xs border-0 bg-transparent font-medium focus:ring-0 p-0 pr-1 shadow-none gap-1">
-                  <SelectValue placeholder="Font Family" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mono" className="text-xs">Mono (JetBrains)</SelectItem>
-                  <SelectItem value="sans" className="text-xs">Sans (Inter)</SelectItem>
-                  <SelectItem value="serif" className="text-xs">Serif (Lora)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-1 px-1 h-full">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setEditorFontSize((s) => Math.max(12, s - 1))}
-                title="Decrease font size"
-                className="h-6 w-6 text-muted-foreground hover:text-foreground"
-              >
-                −
-              </Button>
-              <span className="min-w-6 text-center text-xs font-semibold font-mono text-foreground">
-                {editorFontSize}px
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setEditorFontSize((s) => Math.min(26, s + 1))}
-                title="Increase font size"
-                className="h-6 w-6 text-muted-foreground hover:text-foreground"
-              >
-                +
-              </Button>
-            </div>
+        {/* Right side: Typography & Copy */}
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          <Select value={editorFont} onValueChange={(val) => setEditorFont(val as any)}>
+            <SelectTrigger className="h-6 w-[72px] text-[11px] border-0 bg-transparent font-medium focus:ring-0 px-1 shadow-none gap-0.5 text-muted-foreground hover:text-foreground">
+              <SelectValue placeholder="Font" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mono" className="text-xs">Mono</SelectItem>
+              <SelectItem value="sans" className="text-xs">Sans</SelectItem>
+              <SelectItem value="serif" className="text-xs">Serif</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="icon" onClick={() => setEditorFontSize((s) => Math.max(12, s - 1))} title="Decrease font size" className="h-6 w-6 text-muted-foreground hover:text-foreground text-xs">
+              −
+            </Button>
+            <span className="w-5 text-center text-[11px] font-semibold font-mono text-muted-foreground">
+              {editorFontSize}
+            </span>
+            <Button variant="ghost" size="icon" onClick={() => setEditorFontSize((s) => Math.min(26, s + 1))} title="Increase font size" className="h-6 w-6 text-muted-foreground hover:text-foreground text-xs">
+              +
+            </Button>
           </div>
 
+          <Separator orientation="vertical" className="h-4 mx-0.5" />
+
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
             onClick={handleCopyMarkdown}
             title="Copy Raw Markdown"
-            className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
           >
-            {copiedMarkdown ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-emerald-500 font-semibold">Copied</span>
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Copy</span>
-              </>
-            )}
+            {copiedMarkdown ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
           </Button>
         </div>
       </div>
 
-      {/* Editor & Preview Workspace: Exact flex-1 height with independent inner scroll */}
-      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0 min-w-0 w-full gap-4">
-        {/* Editor Pane */}
-        {(viewMode === 'write' || viewMode === 'split') && (
-          <ResizablePanel defaultSize={viewMode === 'split' ? 50 : 100} minSize={20} className="flex flex-col h-full rounded-xl border border-border bg-background shadow-2xs overflow-hidden relative">
-            {/* Editor Pane Header */}
-            <div className="flex items-center justify-between border-b border-border px-4 py-2 bg-muted/60 dark:bg-zinc-950 text-xs text-muted-foreground shrink-0">
-              <div className="flex items-center gap-2">
-                <FileCode2 className="h-3.5 w-3.5" />
-                <span className="font-semibold uppercase tracking-wider text-[11px] text-foreground">
-                  Markdown Canvas
-                </span>
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  ({editorFont} • {editorFontSize}px)
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-[11px]">
-                <span>Tab: 2 spaces</span>
-                <span>•</span>
-                <span>Ctrl+B: Bold</span>
-                <span>•</span>
-                <span>Ctrl+S: Save</span>
-              </div>
-            </div>
-
-            {/* Smooth Textarea with internal scroll, custom font, and smooth caret */}
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => {
-                setContent(e.target.value)
-                setIsDirty(true)
-              }}
-              onKeyDown={handleKeyDown}
-              onKeyUp={handleCursorActivity}
-              onClick={handleCursorActivity}
-              placeholder={`# 1. Clean Architecture & Boundaries\n\nWrite your concepts, explanations, architecture notes, and code here directly in Markdown...\n\n### Core Principles\n- Decouple domain core from external infrastructure\n- Enforce unidirectional dependencies\n\n### Code Demonstration\n\`\`\`csharp\npublic class CleanArchitecture\n{\n    // Domain logic core\n}\n\`\`\`\n\n| Layer | Responsibility | Status |\n| :--- | :--- | :--- |\n| Domain | Enterprise business rules | Core |\n| Infrastructure | External persistence & HTTP | Boundary |\n\n### Technical Diagram\n![Architecture Diagram](https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800)\n\n### Video Lecture\n[video:https://www.youtube.com/watch?v=d_k8k04nK_c]\n`}
-              className={`flex-1 min-h-0 w-full p-4 sm:p-5 leading-relaxed bg-transparent text-foreground placeholder:text-muted-foreground/50 focus:outline-hidden resize-none overflow-y-auto editor-canvas selection:bg-indigo-500/20 ${
-                editorFont === 'mono'
-                  ? 'font-canvas-mono'
-                  : editorFont === 'sans'
-                  ? 'font-canvas-sans'
-                  : 'font-canvas-serif'
-              }`}
-              style={{ fontSize: `${editorFontSize}px` }}
-            />
-
-            {/* Status Footer Bar */}
-            <div className="flex items-center justify-between border-t border-border px-4 py-1.5 bg-muted/40 dark:bg-zinc-950 text-[11px] text-muted-foreground shrink-0">
-              <div className="flex items-center gap-3">
-                <span>
-                  Ln {cursorPos.line}, Col {cursorPos.col}
-                </span>
-                <span>•</span>
-                <span>{wordCount} words</span>
-                <span>•</span>
-                <span>{content.length} chars</span>
-              </div>
-              <div className="text-[11px] text-muted-foreground hidden sm:block">
-                UTF-8 • Markdown AST
-              </div>
-            </div>
-          </ResizablePanel>
-        )}
-
-        {viewMode === 'split' && <ResizableHandle withHandle className="w-1.5 rounded-full bg-transparent mx-[-0.375rem] z-10 cursor-col-resize hover:bg-border transition-colors" />}
-
-        {/* Live Article Preview Pane with Inherited Typography */}
-        {(viewMode === 'preview' || viewMode === 'split') && (
-          <ResizablePanel defaultSize={viewMode === 'split' ? 50 : 100} minSize={20} className="flex flex-col h-full rounded-xl border border-border bg-background shadow-2xs overflow-hidden relative">
-            {/* Preview Pane Header */}
-            <div className="flex items-center justify-between border-b border-border px-4 py-2 bg-muted/60 dark:bg-zinc-950 text-xs text-muted-foreground shrink-0">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-3.5 w-3.5" />
-                <span className="font-semibold uppercase tracking-wider text-[11px] text-foreground">
-                  Live Article Preview
-                </span>
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  ({editorFont} • {editorFontSize}px)
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-[11px]">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Live Synchronized</span>
-              </div>
-            </div>
-
-            {/* Preview Content Body: Inherits user font and font size */}
-            <div
-              className={`flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 ${
-                editorFont === 'mono'
-                  ? 'font-canvas-mono'
-                  : editorFont === 'sans'
-                  ? 'font-canvas-sans'
-                  : 'font-canvas-serif'
-              }`}
-              style={{ fontSize: `${editorFontSize}px` }}
-            >
-              {/* Optional Subject Pill */}
-              {currentSubject && (
-                <div className="mb-4">
-                  <Badge variant="outline" className="text-xs font-semibold border-indigo-500/20 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20">
-                    {currentSubject.title}
-                  </Badge>
+      {/* 3. RESIZABLE WORKSPACE: Full height, flex-1, zero outer margins */}
+      <div className="flex-1 min-h-0 min-w-0 w-full flex overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0 min-w-0 w-full h-full">
+          {/* Editor Pane */}
+          {(viewMode === 'write' || viewMode === 'split') && (
+            <ResizablePanel defaultSize={viewMode === 'split' ? 50 : 100} minSize={20} className="flex flex-col h-full bg-background border-r border-border/80 overflow-hidden relative">
+              {/* Editor Sub-header */}
+              <div className="flex items-center justify-between border-b border-border/60 px-3 py-1 bg-muted/30 text-xs text-muted-foreground shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <FileCode2 className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">
+                    Markdown Editor
+                  </span>
                 </div>
-              )}
-
-              {deferredContent.trim() ? (
-                <RichContentRenderer
-                  content={deferredContent}
-                  fontFamily={editorFont}
-                  fontSize={editorFontSize}
-                />
-              ) : (
-                <div className="py-24 text-center space-y-3 text-muted-foreground">
-                  <FileText className="h-10 w-10 mx-auto text-zinc-400 dark:text-zinc-600 stroke-[1.5]" />
-                  <p className="text-sm font-medium text-foreground">
-                    Your formatted article will render here in real-time
-                  </p>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    Type directly in Markdown: headings, bold, italic, code blocks, tables, callouts, and media embeds.
-                  </p>
+                <div className="hidden md:flex items-center gap-2 text-[10px] text-muted-foreground/70">
+                  <span>Ctrl+B Bold</span>
+                  <span>•</span>
+                  <span>Tab 2 spaces</span>
                 </div>
-              )}
-            </div>
-          </ResizablePanel>
-        )}
-      </ResizablePanelGroup>
+              </div>
+
+              {/* Textarea: Notice overflow-y-auto and overflow-x-hidden */}
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={(e) => {
+                  setContent(e.target.value)
+                  setIsDirty(true)
+                }}
+                onKeyDown={handleKeyDown}
+                onKeyUp={handleCursorActivity}
+                onClick={handleCursorActivity}
+                placeholder={`# 1. Clean Architecture & Boundaries\n\nWrite your concepts, explanations, architecture notes, and code here directly in Markdown...\n\n### Core Principles\n- Decouple domain core from external infrastructure\n- Enforce unidirectional dependencies\n\n### Code Demonstration\n\`\`\`csharp\npublic class CleanArchitecture\n{\n    // Domain logic core\n}\n\`\`\`\n`}
+                className={`flex-1 min-h-0 w-full p-4 sm:p-6 leading-relaxed bg-transparent text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none overflow-y-auto overflow-x-hidden editor-canvas selection:bg-indigo-500/20 ${
+                  editorFont === 'mono'
+                    ? 'font-canvas-mono'
+                    : editorFont === 'sans'
+                    ? 'font-canvas-sans'
+                    : 'font-canvas-serif'
+                }`}
+                style={{ fontSize: `${editorFontSize}px` }}
+              />
+
+              {/* Status Footer */}
+              <div className="flex items-center justify-between border-t border-border/60 px-3 py-1 bg-muted/20 text-[10px] text-muted-foreground shrink-0">
+                <div className="flex items-center gap-2">
+                  <span>Ln {cursorPos.line}, Col {cursorPos.col}</span>
+                  <span>•</span>
+                  <span>{wordCount} words</span>
+                  <span>•</span>
+                  <span>{content.length} chars</span>
+                </div>
+                <div className="hidden sm:block">
+                  UTF-8 • Markdown AST
+                </div>
+              </div>
+            </ResizablePanel>
+          )}
+
+          {viewMode === 'split' && (
+            <ResizableHandle withHandle className="w-1 bg-border/60 hover:bg-primary transition-colors cursor-col-resize" />
+          )}
+
+          {/* Preview Pane */}
+          {(viewMode === 'preview' || viewMode === 'split') && (
+            <ResizablePanel defaultSize={viewMode === 'split' ? 50 : 100} minSize={20} className="flex flex-col h-full bg-background overflow-hidden relative">
+              {/* Preview Sub-header */}
+              <div className="flex items-center justify-between border-b border-border/60 px-3 py-1 bg-muted/30 text-xs text-muted-foreground shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <Eye className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">
+                    Live Preview
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/60 font-mono">
+                    ({editorFont} • {editorFontSize}px)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Synchronized</span>
+                </div>
+              </div>
+
+              {/* Preview Content Body */}
+              <div
+                className={`flex-1 min-h-0 overflow-y-auto p-5 sm:p-8 ${
+                  editorFont === 'mono'
+                    ? 'font-canvas-mono'
+                    : editorFont === 'sans'
+                    ? 'font-canvas-sans'
+                    : 'font-canvas-serif'
+                }`}
+                style={{ fontSize: `${editorFontSize}px` }}
+              >
+                {currentSubject && (
+                  <div className="mb-4">
+                    <Badge variant="outline" className="text-xs font-semibold border-indigo-500/20 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20">
+                      {currentSubject.title}
+                    </Badge>
+                  </div>
+                )}
+
+                {deferredContent.trim() ? (
+                  <RichContentRenderer
+                    content={deferredContent}
+                    fontFamily={editorFont}
+                    fontSize={editorFontSize}
+                  />
+                ) : (
+                  <div className="py-24 text-center space-y-3 text-muted-foreground">
+                    <FileText className="h-10 w-10 mx-auto text-muted-foreground/40 stroke-[1.5]" />
+                    <p className="text-sm font-medium text-foreground">
+                      Your formatted article will render here in real-time
+                    </p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Type directly in Markdown: headings, bold, italic, code blocks, tables, callouts, and media embeds.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </ResizablePanel>
+          )}
+        </ResizablePanelGroup>
+      </div>
 
       {/* MODAL 1: Insert Image Dialog */}
       {showImageModal && (
