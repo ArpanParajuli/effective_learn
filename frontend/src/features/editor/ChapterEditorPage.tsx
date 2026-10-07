@@ -28,6 +28,7 @@ import {
   BookOpen,
   FileText,
   LayoutTemplate,
+  Type,
   X,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -183,6 +184,10 @@ export function ChapterEditorPage() {
   const [cursorPos, setCursorPos] = React.useState({ line: 1, col: 1 })
   const [copiedMarkdown, setCopiedMarkdown] = React.useState(false)
 
+  // Custom typography preferences: Mono, Sans, or Serif font + size control
+  const [editorFont, setEditorFont] = React.useState<'mono' | 'sans' | 'serif'>('mono')
+  const [editorFontSize, setEditorFontSize] = React.useState<number>(14)
+
   // Smooth typing: Deferred content for live preview so high-speed typing never stutters
   const deferredContent = React.useDeferredValue(content)
 
@@ -257,7 +262,7 @@ export function ChapterEditorPage() {
     })
   }
 
-  // Insert Text at Cursor
+  // Smart Insert / Toggle Text at Cursor
   const insertTextAtCursor = (prefix: string, suffix: string = '', defaultText: string = '') => {
     const textarea = textareaRef.current
     if (!textarea) {
@@ -267,7 +272,21 @@ export function ChapterEditorPage() {
 
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
-    const selected = content.substring(start, end) || defaultText
+    const hasSelection = start !== end
+    const selected = hasSelection ? content.substring(start, end) : defaultText
+
+    // Check if selected text is already wrapped in prefix & suffix (toggle off)
+    if (hasSelection && suffix && selected.startsWith(prefix) && selected.endsWith(suffix)) {
+      const unwrapped = selected.slice(prefix.length, -suffix.length)
+      const before = content.substring(0, start)
+      const after = content.substring(end)
+      setContent(before + unwrapped + after)
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start, start + unwrapped.length)
+      }, 10)
+      return
+    }
 
     const replacement = prefix + selected + suffix
     const before = content.substring(0, start)
@@ -277,9 +296,15 @@ export function ChapterEditorPage() {
 
     setTimeout(() => {
       textarea.focus()
-      const newCursorPos = start + prefix.length + selected.length
-      textarea.setSelectionRange(newCursorPos, newCursorPos)
-    }, 30)
+      if (!hasSelection && defaultText) {
+        // Highlight default text so user can immediately type over it
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length + defaultText.length)
+      } else {
+        // Position cursor right after replacement
+        const newCursorPos = start + replacement.length
+        textarea.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 10)
   }
 
   // Smooth keyboard handling: Tab indentation, auto-continue bullets, and shortcuts
@@ -712,7 +737,7 @@ export function ChapterEditorPage() {
               type="button"
               onClick={() =>
                 insertTextAtCursor(
-                  '\n| Concept | Description |\n| :--- | :--- |\n| Item 1 | Details... |\n\n'
+                  '\n| Concept | Architectural Role | Status |\n| :--- | :--- | :--- |\n| Clean Architecture | Decouples domain core from external infra | Verified |\n| PostgreSQL 17 | Relational persistence with BRIN partitioning | Active |\n| Prism Engine | Multi-language syntax highlighting | Complete |\n\n'
                 )
               }
               title="Insert Markdown Table"
@@ -731,8 +756,41 @@ export function ChapterEditorPage() {
           </div>
         </div>
 
-        {/* Right Action: Copy Source */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Right Action: Font Selector & Copy Source */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Custom Font Picker */}
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/80 text-xs">
+            <Type className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+            <select
+              value={editorFont}
+              onChange={(e) => setEditorFont(e.target.value as any)}
+              className="bg-transparent text-[11px] font-medium text-slate-800 dark:text-slate-200 border-0 py-0 pl-0 pr-1 focus:outline-hidden cursor-pointer"
+            >
+              <option value="mono" className="dark:bg-[#11131a]">Mono (Code)</option>
+              <option value="sans" className="dark:bg-[#11131a]">Sans (Clean)</option>
+              <option value="serif" className="dark:bg-[#11131a]">Serif (Book)</option>
+            </select>
+            <div className="flex items-center gap-0.5 pl-1 border-l border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 font-mono">
+              <button
+                type="button"
+                onClick={() => setEditorFontSize((s) => Math.max(12, s - 1))}
+                title="Decrease font size"
+                className="px-1 py-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                -
+              </button>
+              <span className="w-3 text-center">{editorFontSize}</span>
+              <button
+                type="button"
+                onClick={() => setEditorFontSize((s) => Math.min(22, s + 1))}
+                title="Increase font size"
+                className="px-1 py-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={handleCopyMarkdown}
@@ -770,6 +828,9 @@ export function ChapterEditorPage() {
                 <span className="font-semibold uppercase tracking-wider text-[11px] text-slate-700 dark:text-slate-300">
                   Markdown Editor
                 </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  ({editorFont} • {editorFontSize}px)
+                </span>
               </div>
               <div className="flex items-center gap-2 text-[11px]">
                 <span>Tab indents 2 spaces</span>
@@ -778,7 +839,7 @@ export function ChapterEditorPage() {
               </div>
             </div>
 
-            {/* Smooth Textarea with internal scroll and smooth caret */}
+            {/* Smooth Textarea with internal scroll, custom font, and smooth caret */}
             <textarea
               ref={textareaRef}
               value={content}
@@ -787,7 +848,14 @@ export function ChapterEditorPage() {
               onKeyUp={handleCursorActivity}
               onClick={handleCursorActivity}
               placeholder={`# Your Title\n\nWrite your concepts, explanations, architecture notes, and code here...\n\n### Code Demonstration\n\`\`\`csharp\npublic class CleanArchitecture\n{\n    // Clean decoupling\n}\n\`\`\`\n\n### Technical Diagram\n![Architecture Diagram](https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800)\n\n### Embedded Lecture\n[video:https://www.youtube.com/watch?v=d_k8k04nK_c]\n`}
-              className="flex-1 min-h-0 w-full p-4 sm:p-5 font-mono text-[14px] leading-relaxed bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400/50 dark:placeholder:text-slate-600 focus:outline-hidden resize-none overflow-y-auto editor-canvas selection:bg-indigo-500/20"
+              className={`flex-1 min-h-0 w-full p-4 sm:p-5 leading-relaxed bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400/50 dark:placeholder:text-slate-600 focus:outline-hidden resize-none overflow-y-auto editor-canvas selection:bg-indigo-500/20 ${
+                editorFont === 'mono'
+                  ? 'font-canvas-mono'
+                  : editorFont === 'sans'
+                  ? 'font-canvas-sans'
+                  : 'font-canvas-serif'
+              }`}
+              style={{ fontSize: `${editorFontSize}px` }}
             />
 
             {/* Status Footer Bar */}

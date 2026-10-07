@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { ExternalLink, Globe, Film, Check, Copy, AlertCircle, Info, Lightbulb, AlertTriangle, Image as ImageIcon } from 'lucide-react'
+import { marked, type Tokens, type Token } from 'marked'
 import Prism from 'prismjs'
 import 'prismjs/components/prism-csharp'
 import 'prismjs/components/prism-typescript'
@@ -62,23 +63,330 @@ export function RichContentRenderer({ content }: RichContentRendererProps) {
     setTimeout(() => setCopiedIndex(null), 2000)
   }
 
-  // Split into blocks by double newline
-  const blocks = React.useMemo(() => {
-    return content.split('\n\n').map((b) => b.trim()).filter(Boolean)
+  // Parse markdown AST using marked.lexer
+  const tokens = React.useMemo(() => {
+    if (!content) return []
+    try {
+      return marked.lexer(content, { gfm: true, breaks: true })
+    } catch {
+      return []
+    }
   }, [content])
 
-  return (
-    <div className="prose-reader space-y-6">
-      {blocks.map((block, index) => {
-        // 1. Video Embed tag: [video:URL]
-        if (block.startsWith('[video:') && block.endsWith(']')) {
-          const videoUrl = block.slice(7, -1).trim()
+  // Recursive inline tokens renderer: handles **bold**, *italic*, ~~strike~~, `code`, [link](url), etc.
+  const renderInlineTokens = (inlineTokens?: Token[]): React.ReactNode => {
+    if (!inlineTokens || inlineTokens.length === 0) return null
+
+    return inlineTokens.map((token, idx) => {
+      switch (token.type) {
+        case 'strong':
+          return (
+            <strong key={idx} className="font-bold text-slate-900 dark:text-white">
+              {renderInlineTokens((token as Tokens.Strong).tokens)}
+            </strong>
+          )
+        case 'em':
+          return (
+            <em key={idx} className="italic text-slate-800 dark:text-slate-200">
+              {renderInlineTokens((token as Tokens.Em).tokens)}
+            </em>
+          )
+        case 'del':
+          return (
+            <del key={idx} className="line-through text-slate-500 dark:text-slate-400">
+              {renderInlineTokens((token as Tokens.Del).tokens)}
+            </del>
+          )
+        case 'codespan':
+          return (
+            <code
+              key={idx}
+              className="px-1.5 py-0.5 rounded-md font-mono text-[13px] bg-slate-100 dark:bg-[#1a1d28] text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-800 font-semibold"
+            >
+              {(token as Tokens.Codespan).text}
+            </code>
+          )
+        case 'link': {
+          const linkToken = token as Tokens.Link
+          return (
+            <a
+              key={idx}
+              href={linkToken.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 dark:text-indigo-400 underline underline-offset-2 hover:text-indigo-500 transition-colors font-medium"
+            >
+              {renderInlineTokens(linkToken.tokens)}
+            </a>
+          )
+        }
+        case 'image': {
+          const imgToken = token as Tokens.Image
+          return (
+            <img
+              key={idx}
+              src={imgToken.href}
+              alt={imgToken.text || 'Image'}
+              onClick={() => setLightboxImage(imgToken.href)}
+              className="max-h-[480px] rounded-lg my-2 object-contain cursor-zoom-in"
+            />
+          )
+        }
+        case 'text': {
+          const textToken = token as Tokens.Text
+          return textToken.tokens ? (
+            <React.Fragment key={idx}>{renderInlineTokens(textToken.tokens)}</React.Fragment>
+          ) : (
+            <React.Fragment key={idx}>{textToken.text}</React.Fragment>
+          )
+        }
+        default:
+          return <React.Fragment key={idx}>{token.raw}</React.Fragment>
+      }
+    })
+  }
+
+  // Render individual block tokens
+  const renderBlockToken = (token: Token, index: number): React.ReactNode => {
+    switch (token.type) {
+      // 1. Table
+      case 'table': {
+        const tableToken = token as Tokens.Table
+        return (
+          <div
+            key={index}
+            className="my-6 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#0c0d12]"
+          >
+            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead className="bg-slate-50 dark:bg-[#131622] border-b border-slate-200 dark:border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <tr>
+                  {tableToken.header.map((cell, cIdx) => (
+                    <th
+                      key={cIdx}
+                      className="py-3 px-4 font-semibold"
+                      style={{ textAlign: tableToken.align[cIdx] || 'left' }}
+                    >
+                      {renderInlineTokens(cell.tokens)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {tableToken.rows.map((row, rIdx) => (
+                  <tr
+                    key={rIdx}
+                    className="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors"
+                  >
+                    {row.map((cell, cIdx) => (
+                      <td
+                        key={cIdx}
+                        className="py-3 px-4 text-slate-800 dark:text-slate-200"
+                        style={{ textAlign: tableToken.align[cIdx] || 'left' }}
+                      >
+                        {renderInlineTokens(cell.tokens)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      }
+
+      // 2. Syntax-Highlighted Code Block
+      case 'code': {
+        const codeToken = token as Tokens.Code
+        const language = codeToken.lang || 'text'
+        const code = codeToken.text
+        const highlightedHtml = highlightCode(code, language)
+        const codeLines = code.split('\n')
+
+        return (
+          <div
+            key={index}
+            className="relative my-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#0d1117] text-slate-100 overflow-hidden text-xs sm:text-sm font-mono shadow-md"
+          >
+            {/* Obsidian-Style Code Window Bar */}
+            <div className="flex items-center justify-between border-b border-slate-800 bg-[#161b22] px-4 py-2 text-slate-400 text-xs select-none">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500/80 inline-block" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80 inline-block" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                </div>
+                <span className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider pl-1.5">
+                  {language}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopy(code, index)}
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer text-xs"
+              >
+                {copiedIndex === index ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-emerald-400" />
+                    <span className="text-emerald-400 text-[11px]">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span className="text-[11px]">Copy</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Line Numbers + Highlighted Code Body */}
+            <div className="overflow-x-auto p-4 flex gap-4 text-xs sm:text-sm leading-relaxed code-obsidian">
+              <div className="select-none text-slate-600 dark:text-slate-500 text-right font-mono text-[11px] sm:text-xs leading-relaxed border-r border-slate-800/80 pr-3.5">
+                {codeLines.map((_, i) => (
+                  <div key={i}>{i + 1}</div>
+                ))}
+              </div>
+              <pre className="m-0 flex-1 overflow-visible bg-transparent p-0 text-slate-200">
+                <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
+              </pre>
+            </div>
+          </div>
+        )
+      }
+
+      // 3. Headings
+      case 'heading': {
+        const headingToken = token as Tokens.Heading
+        const inlineContent = renderInlineTokens(headingToken.tokens)
+        if (headingToken.depth === 1) {
+          return (
+            <h1
+              key={index}
+              className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 mt-8 mb-4"
+            >
+              {inlineContent}
+            </h1>
+          )
+        }
+        if (headingToken.depth === 2) {
+          return (
+            <h2
+              key={index}
+              className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 mt-6 mb-3 pb-2 border-b border-slate-200 dark:border-slate-800"
+            >
+              {inlineContent}
+            </h2>
+          )
+        }
+        if (headingToken.depth === 3) {
+          return (
+            <h3
+              key={index}
+              className="text-lg font-semibold text-slate-900 dark:text-slate-200 mt-5 mb-2"
+            >
+              {inlineContent}
+            </h3>
+          )
+        }
+        return (
+          <h4
+            key={index}
+            className="text-base font-semibold text-slate-900 dark:text-slate-200 mt-4 mb-2"
+          >
+            {inlineContent}
+          </h4>
+        )
+      }
+
+      // 4. Blockquote / Obsidian Callouts
+      case 'blockquote': {
+        const bqToken = token as Tokens.Blockquote
+        const rawText = bqToken.text.trim()
+
+        // Check for Obsidian Callouts: > [!NOTE], > [!TIP], > [!WARNING], > [!IMPORTANT]
+        const calloutMatch = rawText.match(/^\[!(\w+)\]\s*([\s\S]*)/)
+        if (calloutMatch) {
+          const type = calloutMatch[1].toUpperCase()
+          const text = calloutMatch[2].trim()
+
+          const isTip = type === 'TIP'
+          const isWarn = type === 'WARNING' || type === 'CAUTION'
+          const isImportant = type === 'IMPORTANT'
+
+          const borderColor = isTip
+            ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-950 dark:text-emerald-100'
+            : isWarn
+            ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 text-amber-950 dark:text-amber-100'
+            : isImportant
+            ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20 text-indigo-950 dark:text-indigo-100'
+            : 'border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 text-blue-950 dark:text-blue-100'
+
+          const Icon = isTip
+            ? Lightbulb
+            : isWarn
+            ? AlertTriangle
+            : isImportant
+            ? AlertCircle
+            : Info
+
+          return (
+            <div
+              key={index}
+              className={`my-5 rounded-xl border-l-4 p-4 border border-slate-200 dark:border-slate-800 ${borderColor}`}
+            >
+              <div className="flex items-center gap-2 font-semibold text-xs uppercase tracking-wider mb-1.5">
+                <Icon className="h-4 w-4" />
+                <span>{type}</span>
+              </div>
+              <p className="text-sm leading-relaxed m-0">{text}</p>
+            </div>
+          )
+        }
+
+        return (
+          <blockquote
+            key={index}
+            className="border-l-4 border-slate-300 dark:border-slate-700 pl-4 py-1 italic text-slate-600 dark:text-slate-400 my-4"
+          >
+            {renderInlineTokens(bqToken.tokens)}
+          </blockquote>
+        )
+      }
+
+      // 5. Lists
+      case 'list': {
+        const listToken = token as Tokens.List
+        const ListTag = listToken.ordered ? 'ol' : 'ul'
+        const listClass = listToken.ordered
+          ? 'list-decimal pl-5 space-y-1.5 my-4 text-slate-700 dark:text-slate-300'
+          : 'list-disc pl-5 space-y-1.5 my-4 text-slate-700 dark:text-slate-300'
+
+        return (
+          <ListTag key={index} className={listClass}>
+            {listToken.items.map((item, itemIdx) => (
+              <li key={itemIdx}>{renderInlineTokens(item.tokens)}</li>
+            ))}
+          </ListTag>
+        )
+      }
+
+      // 6. Horizontal Rule
+      case 'hr':
+        return <hr key={index} className="my-8 border-slate-200 dark:border-slate-800" />
+
+      // 7. Paragraph & Custom Embeds: [video:...], [website:...], ![img](...)
+      case 'paragraph': {
+        const pToken = token as Tokens.Paragraph
+        const raw = pToken.raw.trim()
+
+        // 7a. Video Embed: [video:URL]
+        if (raw.startsWith('[video:') && raw.endsWith(']')) {
+          const videoUrl = raw.slice(7, -1).trim()
           const youtubeId = parseYouTubeId(videoUrl)
 
           return (
             <div
               key={index}
-              className="my-6 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shadow-sm"
+              className="my-6 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shadow-xs"
             >
               <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-slate-900/80">
                 <Film className="h-4 w-4 text-indigo-500" />
@@ -103,21 +411,19 @@ export function RichContentRenderer({ content }: RichContentRendererProps) {
                     className="h-full w-full border-0"
                   />
                 ) : (
-                  <video
-                    src={videoUrl}
-                    controls
-                    className="h-full w-full object-cover"
-                  />
+                  <video src={videoUrl} controls className="h-full w-full object-cover" />
                 )}
               </div>
             </div>
           )
         }
 
-        // 2. Website Embed tag: [website:URL] or [website:URL|Title]
-        if (block.startsWith('[website:') && block.endsWith(']')) {
-          const raw = block.slice(9, -1).trim()
-          const [url, title] = raw.includes('|') ? raw.split('|') : [raw, raw]
+        // 7b. Website Bookmark: [website:URL] or [website:URL|Title]
+        if (raw.startsWith('[website:') && raw.endsWith(']')) {
+          const contentStr = raw.slice(9, -1).trim()
+          const [url, title] = contentStr.includes('|')
+            ? contentStr.split('|')
+            : [contentStr, contentStr]
           let hostname = url
           try {
             hostname = new URL(url).hostname
@@ -128,7 +434,7 @@ export function RichContentRenderer({ content }: RichContentRendererProps) {
           return (
             <div
               key={index}
-              className="my-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 p-4 transition-all hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm"
+              className="my-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 p-4 transition-all hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
@@ -157,8 +463,8 @@ export function RichContentRenderer({ content }: RichContentRendererProps) {
           )
         }
 
-        // 3. First-Class Image Embed: ![Alt / Caption](ImageURL)
-        const imgMatch = block.match(/^!\[(.*?)\]\((.*?)\)$/)
+        // 7c. Full block image: ![alt](url)
+        const imgMatch = raw.match(/^!\[(.*?)\]\((.*?)\)$/)
         if (imgMatch) {
           const alt = imgMatch[1].trim()
           const src = imgMatch[2].trim()
@@ -167,17 +473,13 @@ export function RichContentRenderer({ content }: RichContentRendererProps) {
             <figure key={index} className="my-6 space-y-2">
               <div
                 onClick={() => setLightboxImage(src)}
-                className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-1 shadow-sm cursor-zoom-in transition-all hover:border-slate-400 dark:hover:border-slate-600"
+                className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-1 shadow-xs cursor-zoom-in transition-all hover:border-slate-400 dark:hover:border-slate-600"
               >
                 <img
                   src={src}
                   alt={alt || 'Technical diagram'}
                   className="w-full max-h-[520px] object-contain rounded-lg mx-auto transition-transform duration-200 group-hover:scale-[1.01]"
                   loading="lazy"
-                  onError={(e) => {
-                    // Fallback visual if broken link
-                    ;(e.target as HTMLElement).style.display = 'none'
-                  }}
                 />
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-xs text-white text-[11px] px-2.5 py-1 rounded-md flex items-center gap-1">
                   <ImageIcon className="h-3 w-3" /> Zoom
@@ -192,177 +494,22 @@ export function RichContentRenderer({ content }: RichContentRendererProps) {
           )
         }
 
-        // 4. Obsidian-Grade Syntax-Highlighted Code Blocks
-        if (block.startsWith('```') && block.endsWith('```')) {
-          const lines = block.split('\n')
-          const language = lines[0].replace('```', '').trim() || 'text'
-          const code = lines.slice(1, -1).join('\n')
-          const highlightedHtml = highlightCode(code, language)
-          const codeLines = code.split('\n')
-
-          return (
-            <div
-              key={index}
-              className="relative my-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#0d1117] text-slate-100 overflow-hidden text-xs sm:text-sm font-mono shadow-md"
-            >
-              {/* Obsidian-Style Code Window Bar */}
-              <div className="flex items-center justify-between border-b border-slate-800 bg-[#161b22] px-4 py-2 text-slate-400 text-xs select-none">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-red-500/80 inline-block" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80 inline-block" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 inline-block" />
-                  </div>
-                  <span className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider pl-1.5">
-                    {language}
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleCopy(code, index)}
-                  className="flex items-center gap-1.5 rounded-md px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer text-xs"
-                >
-                  {copiedIndex === index ? (
-                    <>
-                      <Check className="h-3.5 w-3.5 text-emerald-400" />
-                      <span className="text-emerald-400 text-[11px]">Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5" />
-                      <span className="text-[11px]">Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Line Numbers + Highlighted Code Body */}
-              <div className="overflow-x-auto p-4 flex gap-4 text-xs sm:text-sm leading-relaxed code-obsidian">
-                <div className="select-none text-slate-600 dark:text-slate-500 text-right font-mono text-[11px] sm:text-xs leading-relaxed border-r border-slate-800/80 pr-3.5">
-                  {codeLines.map((_, i) => (
-                    <div key={i}>{i + 1}</div>
-                  ))}
-                </div>
-                <pre className="m-0 flex-1 overflow-visible bg-transparent p-0 text-slate-200">
-                  <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
-                </pre>
-              </div>
-            </div>
-          )
-        }
-
-        // 5. Obsidian / GitHub Markdown Callout: > [!NOTE], > [!TIP], > [!WARNING]
-        if (block.startsWith('> [!')) {
-          const calloutMatch = block.match(/^>\s*\[!(\w+)\]\s*([\s\S]*)/)
-          if (calloutMatch) {
-            const type = calloutMatch[1].toUpperCase()
-            const text = calloutMatch[2].replace(/^>\s?/gm, '').trim()
-
-            const isTip = type === 'TIP'
-            const isWarn = type === 'WARNING' || type === 'CAUTION'
-            const isImportant = type === 'IMPORTANT'
-
-            const borderColor = isTip
-              ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-950 dark:text-emerald-100'
-              : isWarn
-              ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 text-amber-950 dark:text-amber-100'
-              : isImportant
-              ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20 text-indigo-950 dark:text-indigo-100'
-              : 'border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 text-blue-950 dark:text-blue-100'
-
-            const Icon = isTip
-              ? Lightbulb
-              : isWarn
-              ? AlertTriangle
-              : isImportant
-              ? AlertCircle
-              : Info
-
-            return (
-              <div
-                key={index}
-                className={`my-5 rounded-xl border-l-4 p-4 border border-slate-200 dark:border-slate-800 ${borderColor}`}
-              >
-                <div className="flex items-center gap-2 font-semibold text-xs uppercase tracking-wider mb-1.5">
-                  <Icon className="h-4 w-4" />
-                  <span>{type}</span>
-                </div>
-                <p className="text-sm leading-relaxed m-0">{text}</p>
-              </div>
-            )
-          }
-        }
-
-        // 6. Regular Blockquote
-        if (block.startsWith('> ')) {
-          return (
-            <blockquote
-              key={index}
-              className="border-l-4 border-slate-300 dark:border-slate-700 pl-4 py-1 italic text-slate-600 dark:text-slate-400 my-4"
-            >
-              {block.slice(2)}
-            </blockquote>
-          )
-        }
-
-        // 7. Headings
-        if (block.startsWith('# ')) {
-          return (
-            <h1 key={index} className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 mt-8 mb-4">
-              {block.slice(2)}
-            </h1>
-          )
-        }
-        if (block.startsWith('## ')) {
-          return (
-            <h2 key={index} className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 mt-6 mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
-              {block.slice(3)}
-            </h2>
-          )
-        }
-        if (block.startsWith('### ')) {
-          return (
-            <h3 key={index} className="text-lg font-semibold text-slate-900 dark:text-slate-200 mt-5 mb-2">
-              {block.slice(4)}
-            </h3>
-          )
-        }
-
-        // 8. Bullet List
-        if (block.startsWith('- ') || block.startsWith('* ')) {
-          const items = block.split('\n').map((line) => line.trim().slice(2))
-          return (
-            <ul key={index} className="space-y-1.5 my-4 list-disc pl-5 text-slate-700 dark:text-slate-300">
-              {items.map((item, idx) => (
-                <li key={idx}>{item}</li>
-              ))}
-            </ul>
-          )
-        }
-
-        // 9. Numbered List
-        if (/^\d+\.\s/.test(block)) {
-          const items = block.split('\n').map((line) => line.replace(/^\d+\.\s/, '').trim())
-          return (
-            <ol key={index} className="space-y-1.5 my-4 list-decimal pl-5 text-slate-700 dark:text-slate-300">
-              {items.map((item, idx) => (
-                <li key={idx}>{item}</li>
-              ))}
-            </ol>
-          )
-        }
-
-        // 10. Horizontal Rule
-        if (block === '---' || block === '***') {
-          return <hr key={index} className="my-8 border-slate-200 dark:border-slate-800" />
-        }
-
-        // 11. Default Paragraph
+        // 7d. Standard Paragraph with full inline markdown (Bold, Italic, Strikethrough, Code, Links)
         return (
-          <p key={index} className="text-slate-800 dark:text-slate-200 leading-relaxed my-4">
-            {block}
+          <p key={index} className="text-slate-800 dark:text-slate-200 leading-relaxed my-3.5">
+            {renderInlineTokens(pToken.tokens)}
           </p>
         )
-      })}
+      }
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="prose-reader space-y-4">
+      {tokens.map((token, index) => renderBlockToken(token, index))}
 
       {/* Lightbox Modal */}
       {lightboxImage && (
