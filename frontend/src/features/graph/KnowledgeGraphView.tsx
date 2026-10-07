@@ -90,6 +90,27 @@ export function KnowledgeGraphView() {
     setTimeout(checkScroll, 300)
   }
 
+  // Track container size for true responsiveness (sidebar toggle, etc)
+  const [containerSize, setContainerSize] = React.useState({ width: 0, height: 0 })
+
+  React.useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        })
+      }
+    })
+
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
+
   // Refs to avoid simulation thrashing
   const themeRef = React.useRef(theme)
   const searchQueryRef = React.useRef(searchQuery)
@@ -219,8 +240,8 @@ export function KnowledgeGraphView() {
     const container = containerRef.current
     if (!canvas || !container || filteredData.nodes.length === 0) return
 
-    const width = container.clientWidth || 900
-    const height = container.clientHeight || 600
+    const width = containerSize.width || container.clientWidth || 900
+    const height = containerSize.height || container.clientHeight || 600
 
     canvas.width = width * window.devicePixelRatio
     canvas.height = height * window.devicePixelRatio
@@ -515,7 +536,7 @@ export function KnowledgeGraphView() {
       canvas.removeEventListener('pointercancel', onPointerUp)
       canvas.removeEventListener('wheel', onWheel)
     }
-  }, [filteredData])
+  }, [filteredData, containerSize])
 
   // Zoom Helpers
   const handleZoomIn = () => {
