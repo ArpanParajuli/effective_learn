@@ -269,7 +269,7 @@ export function RichContentRenderer({
           return (
             <h1
               key={index}
-              className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-8 mb-4"
+              className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mt-12 mb-6"
             >
               {inlineContent}
             </h1>
@@ -279,7 +279,7 @@ export function RichContentRenderer({
           return (
             <h2
               key={index}
-              className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground mt-6 mb-3 pb-2 border-b border-border"
+              className="scroll-m-20 border-b border-border pb-2 text-3xl font-semibold tracking-tight first:mt-0 mt-10 mb-4"
             >
               {inlineContent}
             </h2>
@@ -289,7 +289,7 @@ export function RichContentRenderer({
           return (
             <h3
               key={index}
-              className="text-lg font-semibold text-foreground mt-5 mb-2"
+              className="scroll-m-20 text-2xl font-semibold tracking-tight mt-8 mb-4"
             >
               {inlineContent}
             </h3>
@@ -298,7 +298,7 @@ export function RichContentRenderer({
         return (
           <h4
             key={index}
-            className="text-base font-semibold text-foreground mt-4 mb-2"
+            className="scroll-m-20 text-xl font-semibold tracking-tight mt-8 mb-4"
           >
             {inlineContent}
           </h4>
@@ -353,7 +353,7 @@ export function RichContentRenderer({
         return (
           <blockquote
             key={index}
-            className="border-l-4 border-zinc-300 dark:border-zinc-700 pl-4 py-1 italic text-muted-foreground my-4"
+            className="mt-6 border-l-2 border-zinc-300 dark:border-zinc-700 pl-6 italic text-muted-foreground"
           >
             {renderInlineTokens(bqToken.tokens)}
           </blockquote>
@@ -365,8 +365,8 @@ export function RichContentRenderer({
         const listToken = token as Tokens.List
         const ListTag = listToken.ordered ? 'ol' : 'ul'
         const listClass = listToken.ordered
-          ? 'list-decimal pl-5 space-y-1.5 my-4 text-foreground'
-          : 'list-disc pl-5 space-y-1.5 my-4 text-foreground'
+          ? 'my-6 ml-6 list-decimal [&>li]:mt-2 text-foreground'
+          : 'my-6 ml-6 list-disc [&>li]:mt-2 text-foreground'
 
         return (
           <ListTag key={index} className={listClass}>
@@ -397,7 +397,7 @@ export function RichContentRenderer({
               className="my-6 overflow-hidden rounded-xl border border-border bg-card shadow-xs"
             >
               <div className="flex items-center gap-2 border-b border-border px-4 py-2.5 text-xs text-muted-foreground bg-muted/60">
-                <Film className="h-4 w-4 text-indigo-500" />
+                <Film className="h-4 w-4" />
                 <span className="font-medium">Embedded Video Lecture</span>
                 <span className="text-muted-foreground">•</span>
                 <a
@@ -446,7 +446,7 @@ export function RichContentRenderer({
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/60 p-2.5 text-indigo-600 dark:text-indigo-400">
+                  <div className="rounded-lg bg-muted dark:bg-zinc-800 p-2.5 text-foreground">
                     <Globe className="h-5 w-5" />
                   </div>
                   <div>
@@ -504,7 +504,7 @@ export function RichContentRenderer({
 
         // 7d. Standard Paragraph with full inline markdown (Bold, Italic, Strikethrough, Code, Links)
         return (
-          <p key={index} className="text-foreground leading-relaxed my-3.5">
+          <p key={index} className="leading-7 [&:not(:first-child)]:mt-6 text-foreground">
             {renderInlineTokens(pToken.tokens)}
           </p>
         )

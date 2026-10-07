@@ -35,6 +35,14 @@ import { RichContentRenderer } from '@/components/content/RichContentRenderer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -43,6 +51,15 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@/components/ui/toggle-group'
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable'
 import { toast } from 'sonner'
 
 const PROGRAMMING_LANGUAGES = [
@@ -641,7 +658,7 @@ export function ChapterEditorPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
-    <div className="flex flex-col h-[calc(100vh-130px)] min-h-[620px] max-w-7xl mx-auto space-y-2.5">
+    <div className="flex flex-col h-full w-full mx-auto space-y-4">
       {/* Top Header Row: Back, Subject, Document Title, Telemetry, Mode Controller, Publish */}
       <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-2 border-b border-border">
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -657,22 +674,26 @@ export function ChapterEditorPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/60 dark:bg-zinc-950 px-2.5 py-0.5 text-xs">
-                  <FolderOpen className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                  <select
+                <div className="flex items-center">
+                  <Select
                     value={subjectId}
-                    onChange={(e) => {
-                      setSubjectId(e.target.value)
+                    onValueChange={(val) => {
+                      setSubjectId(val)
                       setIsDirty(true)
                     }}
-                    className="bg-transparent font-semibold text-foreground border-0 py-0 pl-1 pr-2 text-xs focus:outline-hidden cursor-pointer"
                   >
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id} className="dark:bg-zinc-950 text-foreground">
-                        {s.title}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="h-8 text-xs border-0 bg-muted/40 font-medium focus:ring-0 px-2 gap-2 rounded-lg">
+                      <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                      <SelectValue placeholder="Select Subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map((s) => (
+                        <SelectItem key={s.id} value={s.id} className="text-xs">
+                          {s.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -719,45 +740,21 @@ export function ChapterEditorPage() {
 
         {/* View Switcher & Publish Button */}
         <div className="flex items-center gap-2">
-          {/* Segmented Mode Control */}
-          <div className="flex items-center rounded-lg border border-border bg-muted dark:bg-zinc-950 p-0.5">
-            <button
-              type="button"
-              onClick={() => setViewMode('write')}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                viewMode === 'write'
-                  ? 'bg-background text-foreground shadow-xs font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Edit3 className="h-3.5 w-3.5" />
+          {/* Segmented Mode Control using Shadcn ToggleGroup */}
+          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'write' | 'split' | 'preview')} className="justify-start border border-border rounded-lg bg-muted/50 dark:bg-zinc-950/50 p-0.5 h-auto">
+            <ToggleGroupItem value="write" aria-label="Toggle Write" className="h-7 px-2.5 text-[11px] gap-1.5 data-[state=on]:bg-background data-[state=on]:shadow-xs">
+              <Edit3 className="h-3 w-3" />
               <span>Write</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('split')}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                viewMode === 'split'
-                  ? 'bg-background text-foreground shadow-xs font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Columns className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="split" aria-label="Toggle Split" className="h-7 px-2.5 text-[11px] gap-1.5 data-[state=on]:bg-background data-[state=on]:shadow-xs">
+              <Columns className="h-3 w-3" />
               <span>Split</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('preview')}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                viewMode === 'preview'
-                  ? 'bg-background text-foreground shadow-xs font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Eye className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="preview" aria-label="Toggle Preview" className="h-7 px-2.5 text-[11px] gap-1.5 data-[state=on]:bg-background data-[state=on]:shadow-xs">
+              <Eye className="h-3 w-3" />
               <span>Preview</span>
-            </button>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
 
           <Button
             onClick={handleSave}
@@ -781,235 +778,259 @@ export function ChapterEditorPage() {
       </div>
 
       {/* Docked Formatting Toolbar */}
-      <div className="shrink-0 bg-card border border-border shadow-2xs rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2 overflow-x-auto">
+      <div className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border shadow-xs rounded-xl px-1.5 py-1.5 flex items-center justify-between gap-2 overflow-x-auto w-full z-10 sticky top-0">
         <div className="flex items-center gap-1 shrink-0">
           {/* Headings */}
-          <div className="flex items-center gap-0.5 pr-1.5 border-r border-border">
-            <button
-              type="button"
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleToggleHeading(1)}
               title="Heading 1 (# )"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Heading1 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleToggleHeading(2)}
               title="Heading 2 (## )"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Heading2 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleToggleHeading(3)}
               title="Heading 3 (### )"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Heading3 className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
+
+          <Separator orientation="vertical" className="h-5 mx-1" />
 
           {/* Inline Typography */}
-          <div className="flex items-center gap-0.5 px-1.5 border-r border-border">
-            <button
-              type="button"
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleToggleInline('**', '**', 'bold text')}
               title="Bold (Ctrl+B)"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Bold className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleToggleInline('*', '*', 'italic text')}
               title="Italic (Ctrl+I)"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Italic className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleToggleInline('~~', '~~', 'strikethrough')}
               title="Strikethrough (~~)"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Strikethrough className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => handleToggleInline('`', '`', 'inlineCode')}
               title="Inline Code (`)"
-              className="h-8 px-2 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer text-xs font-mono font-semibold"
+              className="h-8 px-2 text-muted-foreground hover:text-foreground text-xs font-mono font-semibold"
             >
               {'</>'}
-            </button>
+            </Button>
           </div>
+
+          <Separator orientation="vertical" className="h-5 mx-1" />
 
           {/* Media Blocks */}
-          <div className="flex items-center gap-1 px-1.5 border-r border-border">
-            <button
-              type="button"
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowCodeModal(true)}
               title="Insert Syntax-Highlighted Code Block"
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              <Code className="h-4 w-4 text-indigo-500" />
-              <span>Code</span>
-            </button>
+              <Code className="h-4 w-4 mr-1.5" />
+              Code
+            </Button>
 
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowImageModal(true)}
               title="Insert Image / Diagram"
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              <ImageIcon className="h-4 w-4 text-emerald-500" />
-              <span>Image</span>
-            </button>
+              <ImageIcon className="h-4 w-4 mr-1.5" />
+              Image
+            </Button>
 
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowVideoModal(true)}
               title="Embed Video Lecture"
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              <Film className="h-4 w-4 text-rose-500" />
-              <span>Video</span>
-            </button>
+              <Film className="h-4 w-4 mr-1.5" />
+              Video
+            </Button>
 
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowWebsiteModal(true)}
               title="Insert Website Preview Bookmark"
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              <Globe className="h-4 w-4 text-sky-500" />
-              <span>Bookmark</span>
-            </button>
+              <Globe className="h-4 w-4 mr-1.5" />
+              Bookmark
+            </Button>
           </div>
 
+          <Separator orientation="vertical" className="h-5 mx-1" />
+
           {/* Callouts, Lists, Tables, Divider */}
-          <div className="flex items-center gap-0.5 pl-1">
-            <button
-              type="button"
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleToggleCallout}
               title="Obsidian Callout Box (> [!NOTE])"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Quote className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleToggleList('bullet')}
               title="Bullet List (- )"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <List className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleToggleList('ordered')}
               title="Numbered List (1. )"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <ListOrdered className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() =>
                 handleInsertBlock(
                   '| Concept | Architectural Role | Status |\n| :--- | :--- | :--- |\n| Clean Architecture | Decouples domain core from infra | Verified |\n| PostgreSQL 17 | Relational persistence with BRIN | Active |\n| Prism Engine | Multi-language syntax highlighting | Complete |'
                 )
               }
               title="Insert Markdown Table"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <TableIcon className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => handleInsertBlock('---')}
               title="Horizontal Divider (---)"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Minus className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Right Action: Enhanced Typography Controls & Copy Source */}
         <div className="flex items-center gap-2 shrink-0">
           {/* Enhanced Font Family & Size Controller */}
-          <div className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border bg-card shadow-2xs">
-            <Type className="h-4 w-4 text-indigo-500 shrink-0" />
-            <select
-              value={editorFont}
-              onChange={(e) => setEditorFont(e.target.value as any)}
-              className="bg-transparent text-xs font-semibold text-foreground border-0 py-0 pl-0 pr-1 focus:outline-hidden cursor-pointer"
-            >
-              <option value="mono" className="dark:bg-zinc-950">Mono (Fira/JetBrains)</option>
-              <option value="sans" className="dark:bg-zinc-950">Sans (Inter Clean)</option>
-              <option value="serif" className="dark:bg-zinc-950">Serif (Lora Book)</option>
-            </select>
-            <div className="flex items-center gap-1 pl-2 border-l border-border">
-              <button
-                type="button"
+          <div className="flex items-center h-8 rounded-lg border border-border bg-card shadow-xs px-1">
+            <div className="flex items-center gap-1.5 px-1.5 border-r border-border h-full">
+              <Type className="h-4 w-4 shrink-0" />
+              <Select value={editorFont} onValueChange={(val) => setEditorFont(val as any)}>
+                <SelectTrigger className="h-6 w-[140px] text-xs border-0 bg-transparent font-medium focus:ring-0 p-0 pr-1 shadow-none gap-1">
+                  <SelectValue placeholder="Font Family" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mono" className="text-xs">Mono (JetBrains)</SelectItem>
+                  <SelectItem value="sans" className="text-xs">Sans (Inter)</SelectItem>
+                  <SelectItem value="serif" className="text-xs">Serif (Lora)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1 px-1 h-full">
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setEditorFontSize((s) => Math.max(12, s - 1))}
                 title="Decrease font size"
-                className="h-6 w-6 flex items-center justify-center rounded-md text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
               >
                 −
-              </button>
+              </Button>
               <span className="min-w-6 text-center text-xs font-semibold font-mono text-foreground">
                 {editorFontSize}px
               </span>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setEditorFontSize((s) => Math.min(26, s + 1))}
                 title="Increase font size"
-                className="h-6 w-6 flex items-center justify-center rounded-md text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
               >
                 +
-              </button>
+              </Button>
             </div>
           </div>
 
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleCopyMarkdown}
             title="Copy Raw Markdown"
-            className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border bg-card text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             {copiedMarkdown ? (
               <>
                 <Check className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-xs text-emerald-500 font-semibold">Copied</span>
+                <span className="text-emerald-500 font-semibold">Copied</span>
               </>
             ) : (
               <>
                 <Copy className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline text-xs">Copy Source</span>
+                <span className="hidden sm:inline">Copy</span>
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Editor & Preview Workspace: Exact flex-1 height with independent inner scroll */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0 min-w-0 w-full gap-4">
         {/* Editor Pane */}
         {(viewMode === 'write' || viewMode === 'split') && (
-          <div
-            className={`flex flex-col h-full rounded-xl border border-border bg-background shadow-2xs overflow-hidden ${
-              viewMode === 'write' ? 'md:col-span-2' : ''
-            }`}
-          >
+          <ResizablePanel defaultSize={viewMode === 'split' ? 50 : 100} minSize={20} className="flex flex-col h-full rounded-xl border border-border bg-background shadow-2xs overflow-hidden relative">
             {/* Editor Pane Header */}
             <div className="flex items-center justify-between border-b border-border px-4 py-2 bg-muted/60 dark:bg-zinc-950 text-xs text-muted-foreground shrink-0">
               <div className="flex items-center gap-2">
-                <FileCode2 className="h-3.5 w-3.5 text-indigo-500" />
+                <FileCode2 className="h-3.5 w-3.5" />
                 <span className="font-semibold uppercase tracking-wider text-[11px] text-foreground">
                   Markdown Canvas
                 </span>
@@ -1063,20 +1084,18 @@ export function ChapterEditorPage() {
                 UTF-8 • Markdown AST
               </div>
             </div>
-          </div>
+          </ResizablePanel>
         )}
+
+        {viewMode === 'split' && <ResizableHandle withHandle className="w-1.5 rounded-full bg-transparent mx-[-0.375rem] z-10 cursor-col-resize hover:bg-border transition-colors" />}
 
         {/* Live Article Preview Pane with Inherited Typography */}
         {(viewMode === 'preview' || viewMode === 'split') && (
-          <div
-            className={`flex flex-col h-full rounded-xl border border-border bg-background shadow-2xs overflow-hidden ${
-              viewMode === 'preview' ? 'md:col-span-2' : ''
-            }`}
-          >
+          <ResizablePanel defaultSize={viewMode === 'split' ? 50 : 100} minSize={20} className="flex flex-col h-full rounded-xl border border-border bg-background shadow-2xs overflow-hidden relative">
             {/* Preview Pane Header */}
             <div className="flex items-center justify-between border-b border-border px-4 py-2 bg-muted/60 dark:bg-zinc-950 text-xs text-muted-foreground shrink-0">
               <div className="flex items-center gap-2">
-                <BookOpen className="h-3.5 w-3.5 text-emerald-500" />
+                <BookOpen className="h-3.5 w-3.5" />
                 <span className="font-semibold uppercase tracking-wider text-[11px] text-foreground">
                   Live Article Preview
                 </span>
@@ -1128,9 +1147,9 @@ export function ChapterEditorPage() {
                 </div>
               )}
             </div>
-          </div>
+          </ResizablePanel>
         )}
-      </div>
+      </ResizablePanelGroup>
 
       {/* MODAL 1: Insert Image Dialog */}
       {showImageModal && (
@@ -1138,7 +1157,7 @@ export function ChapterEditorPage() {
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <ImageIcon className="h-5 w-5 text-emerald-500" />
+                <ImageIcon className="h-5 w-5" />
                 Integrate Image / Diagram
               </h3>
               <button
