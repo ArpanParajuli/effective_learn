@@ -357,7 +357,7 @@ export function KnowledgeGraphView() {
         const labelColor = isDark
           ? isHovered || isSelected || isSearchMatch
             ? '#ffffff'
-            : '#94a3b8'
+            : '#a1a1aa'
           : isHovered || isSelected || isSearchMatch
           ? '#0f172a'
           : '#475569'
@@ -536,17 +536,17 @@ export function KnowledgeGraphView() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto select-none w-full overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
               <Network className="h-3.5 w-3.5" />
             </span>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               Knowledge Graph
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
             Visualize all technical subjects, articles, and interconnected concepts in your learning universe.
           </p>
         </div>
@@ -599,7 +599,7 @@ export function KnowledgeGraphView() {
             <button
               type="button"
               onClick={() => scrollPills('left')}
-              className="absolute left-0 z-10 hidden sm:flex h-7 w-7 items-center justify-center rounded-full bg-white/95 dark:bg-[#11131a]/95 shadow-md border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer -translate-x-1"
+              className="absolute left-0 z-10 hidden sm:flex h-7 w-7 items-center justify-center rounded-full bg-background/95 dark:bg-zinc-900/95 shadow-md border border-border text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-all cursor-pointer -translate-x-1"
               title="Scroll left"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -616,8 +616,8 @@ export function KnowledgeGraphView() {
               onClick={() => setActiveSubjectFilter('all')}
               className={`shrink-0 rounded-lg px-3 py-1.5 font-medium whitespace-nowrap transition-colors cursor-pointer text-xs ${
                 activeSubjectFilter === 'all'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800/80 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
               }`}
             >
               All Categories ({subjects.length})
@@ -628,8 +628,8 @@ export function KnowledgeGraphView() {
                 onClick={() => setActiveSubjectFilter(s.id)}
                 className={`shrink-0 rounded-lg px-3 py-1.5 font-medium whitespace-nowrap transition-colors cursor-pointer text-xs ${
                   activeSubjectFilter === s.id
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
-                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800/80 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
                 }`}
               >
                 {s.title}
@@ -642,7 +642,7 @@ export function KnowledgeGraphView() {
             <button
               type="button"
               onClick={() => scrollPills('right')}
-              className="absolute right-0 z-10 hidden sm:flex h-7 w-7 items-center justify-center rounded-full bg-white/95 dark:bg-[#11131a]/95 shadow-md border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer translate-x-1"
+              className="absolute right-0 z-10 hidden sm:flex h-7 w-7 items-center justify-center rounded-full bg-background/95 dark:bg-zinc-900/95 shadow-md border border-border text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-all cursor-pointer translate-x-1"
               title="Scroll right"
             >
               <ChevronRight className="h-4 w-4" />
@@ -654,37 +654,37 @@ export function KnowledgeGraphView() {
       {/* Main Canvas Canvas Container */}
       <div
         ref={containerRef}
-        className="relative w-full h-[620px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#07080c] overflow-hidden shadow-sm touch-none"
+        className="relative w-full h-[620px] rounded-2xl border border-border bg-slate-50 dark:bg-black overflow-hidden shadow-sm touch-none"
       >
         {isLoading ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
             <Skeleton className="h-16 w-16 rounded-full" />
             <Skeleton className="h-4 w-48" />
-            <p className="text-xs text-slate-400">Assembling knowledge graph physics simulation...</p>
+            <p className="text-xs text-muted-foreground">Assembling knowledge graph physics simulation...</p>
           </div>
         ) : (
           <canvas ref={canvasRef} className="w-full h-full block cursor-default" />
         )}
 
         {/* Floating Navigation / Zoom Controls */}
-        <div className="absolute bottom-4 right-4 flex flex-col gap-1.5 bg-white/90 dark:bg-[#11131a]/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 shadow-md">
+        <div className="absolute bottom-4 right-4 flex flex-col gap-1.5 bg-background/90 dark:bg-zinc-950/90 backdrop-blur-md border border-border rounded-xl p-1.5 shadow-md">
           <button
             onClick={handleZoomIn}
-            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             title="Zoom In"
           >
             <ZoomIn className="h-4 w-4" />
           </button>
           <button
             onClick={handleZoomOut}
-            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             title="Zoom Out"
           >
             <ZoomOut className="h-4 w-4" />
           </button>
           <button
             onClick={handleResetZoom}
-            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             title="Reset View"
           >
             <RefreshCw className="h-4 w-4" />
@@ -692,17 +692,17 @@ export function KnowledgeGraphView() {
         </div>
 
         {/* Legend Overlay */}
-        <div className="absolute top-4 left-4 bg-white/80 dark:bg-[#11131a]/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm text-xs space-y-2 pointer-events-none sm:pointer-events-auto">
-          <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-            <Info className="h-3.5 w-3.5 text-slate-400" /> Legend
+        <div className="absolute top-4 left-4 bg-background/80 dark:bg-zinc-950/80 backdrop-blur-md border border-border rounded-xl p-3 shadow-sm text-xs space-y-2 pointer-events-none sm:pointer-events-auto">
+          <div className="font-semibold text-foreground flex items-center gap-1.5">
+            <Info className="h-3.5 w-3.5 text-muted-foreground" /> Legend
           </div>
-          <div className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+          <div className="space-y-1.5 text-[11px] text-muted-foreground">
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full bg-indigo-500 inline-block" />
               <span>Subject Category Hub</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-slate-400 inline-block" />
+              <span className="h-2 w-2 rounded-full bg-zinc-500 inline-block" />
               <span>Chapter / Concept Node</span>
             </div>
           </div>
@@ -710,7 +710,7 @@ export function KnowledgeGraphView() {
 
         {/* Selected Node Inspector Drawer */}
         {selectedNode && (
-          <Card className="absolute top-4 right-4 w-80 max-w-[calc(100%-2rem)] bg-white/95 dark:bg-[#11131a]/95 backdrop-blur-lg border border-slate-200 dark:border-slate-800 shadow-xl p-4 space-y-3 animate-in fade-in zoom-in-95">
+          <Card className="absolute top-4 right-4 w-80 max-w-[calc(100%-2rem)] bg-card/95 backdrop-blur-lg border border-border shadow-xl p-4 space-y-3 animate-in fade-in zoom-in-95">
             <div className="flex items-start justify-between gap-2">
               <Badge
                 variant="outline"
@@ -728,23 +728,23 @@ export function KnowledgeGraphView() {
             </div>
 
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+              <h3 className="text-sm font-bold text-foreground leading-snug">
                 {selectedNode.title}
               </h3>
               {selectedNode.subjectTitle && (
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-[11px] text-muted-foreground mt-0.5">
                   Part of {selectedNode.subjectTitle}
                 </p>
               )}
             </div>
 
             {selectedNode.summary && (
-              <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3">
+              <p className="text-xs text-muted-foreground line-clamp-3">
                 {selectedNode.summary}
               </p>
             )}
 
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border">
               {selectedNode.type === 'chapter' ? (
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" /> {selectedNode.estimatedMinutes || 5} min read

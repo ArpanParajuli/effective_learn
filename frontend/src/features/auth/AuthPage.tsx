@@ -89,19 +89,19 @@ export function AuthPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Brand Badge */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-950 font-bold text-xl shadow-md">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl shadow-md">
             E
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Effective<span className="font-normal text-slate-500 dark:text-slate-400">Learn</span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Effective<span className="font-normal text-muted-foreground">Learn</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Your personal learning journal, architecture notes & embedded lectures
           </p>
         </div>
 
         {/* Auth Card */}
-        <Card className="border border-slate-200 dark:border-slate-800 shadow-lg bg-white dark:bg-[#11131a]">
+        <Card className="border border-border shadow-lg bg-card">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <CardHeader className="pb-4">
               <TabsList className="grid w-full grid-cols-2">
@@ -117,7 +117,7 @@ export function AuthPage() {
                   <div className="space-y-1.5">
                     <Label htmlFor="login-email">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-email"
                         type="email"
@@ -136,13 +136,13 @@ export function AuthPage() {
                       <button
                         type="button"
                         onClick={() => toast.info('Password reset is mocked for frontend demo.')}
-                        className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
+                        className="text-xs text-muted-foreground hover:text-foreground"
                       >
                         Forgot password?
                       </button>
                     </div>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-password"
                         type="password"
@@ -164,7 +164,7 @@ export function AuthPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full text-xs text-slate-600 dark:text-slate-300"
+                    className="w-full text-xs text-muted-foreground hover:text-foreground"
                     onClick={() => {
                       setLoginEmail('arpan@effectivelearn.dev')
                       setLoginPassword('demo-architect')
@@ -236,7 +236,7 @@ export function AuthPage() {
                     {isRegistering ? 'Creating Account...' : 'Create Free Account'}
                   </Button>
 
-                  <p className="text-[11px] text-center text-slate-400 dark:text-slate-500">
+                  <p className="text-[11px] text-center text-muted-foreground">
                     By signing up, you get offline caching and synchronized notes.
                   </p>
                 </CardFooter>

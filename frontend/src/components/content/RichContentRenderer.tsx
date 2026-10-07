@@ -89,19 +89,19 @@ export function RichContentRenderer({
       switch (token.type) {
         case 'strong':
           return (
-            <strong key={idx} className="font-bold text-slate-900 dark:text-white">
+            <strong key={idx} className="font-bold text-foreground">
               {renderInlineTokens((token as Tokens.Strong).tokens)}
             </strong>
           )
         case 'em':
           return (
-            <em key={idx} className="italic text-slate-800 dark:text-slate-200">
+            <em key={idx} className="italic text-foreground">
               {renderInlineTokens((token as Tokens.Em).tokens)}
             </em>
           )
         case 'del':
           return (
-            <del key={idx} className="line-through text-slate-500 dark:text-slate-400">
+            <del key={idx} className="line-through text-muted-foreground">
               {renderInlineTokens((token as Tokens.Del).tokens)}
             </del>
           )
@@ -109,7 +109,7 @@ export function RichContentRenderer({
           return (
             <code
               key={idx}
-              className="px-1.5 py-0.5 rounded-md font-mono text-[13px] bg-slate-100 dark:bg-[#1a1d28] text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-800 font-semibold"
+              className="px-1.5 py-0.5 rounded-md font-mono text-[13px] bg-muted dark:bg-zinc-800 text-foreground dark:text-zinc-200 border border-border font-semibold"
             >
               {(token as Tokens.Codespan).text}
             </code>
@@ -163,10 +163,10 @@ export function RichContentRenderer({
         return (
           <div
             key={index}
-            className="my-6 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#0c0d12]"
+            className="my-6 overflow-x-auto rounded-xl border border-border shadow-xs bg-card"
           >
             <table className="w-full text-left border-collapse text-xs sm:text-sm">
-              <thead className="bg-slate-50 dark:bg-[#131622] border-b border-slate-200 dark:border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <thead className="bg-muted border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <tr>
                   {tableToken.header.map((cell, cIdx) => (
                     <th
@@ -179,16 +179,16 @@ export function RichContentRenderer({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <tbody className="divide-y divide-border/60">
                 {tableToken.rows.map((row, rIdx) => (
                   <tr
                     key={rIdx}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors"
+                    className="hover:bg-muted/50 transition-colors"
                   >
                     {row.map((cell, cIdx) => (
                       <td
                         key={cIdx}
-                        className="py-3 px-4 text-slate-800 dark:text-slate-200"
+                        className="py-3 px-4 text-foreground"
                         style={{ textAlign: tableToken.align[cIdx] || 'left' }}
                       >
                         {renderInlineTokens(cell.tokens)}
@@ -213,24 +213,24 @@ export function RichContentRenderer({
         return (
           <div
             key={index}
-            className="relative my-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-[#0d1117] text-slate-100 overflow-hidden text-xs sm:text-sm font-mono shadow-md"
+            className="relative my-6 rounded-xl border border-border bg-black text-zinc-100 overflow-hidden text-xs sm:text-sm font-mono shadow-md"
           >
             {/* Obsidian-Style Code Window Bar */}
-            <div className="flex items-center justify-between border-b border-slate-800 bg-[#161b22] px-4 py-2 text-slate-400 text-xs select-none">
+            <div className="flex items-center justify-between border-b border-border bg-zinc-950 px-4 py-2 text-zinc-400 text-xs select-none">
               <div className="flex items-center gap-2.5">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500/80 inline-block" />
                   <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80 inline-block" />
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 inline-block" />
                 </div>
-                <span className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider pl-1.5">
+                <span className="text-zinc-400 text-[11px] font-semibold uppercase tracking-wider pl-1.5">
                   {language}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => handleCopy(code, index)}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer text-xs"
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer text-xs"
               >
                 {copiedIndex === index ? (
                   <>
@@ -248,12 +248,12 @@ export function RichContentRenderer({
 
             {/* Line Numbers + Highlighted Code Body */}
             <div className="overflow-x-auto p-4 flex gap-4 text-xs sm:text-sm leading-relaxed code-obsidian">
-              <div className="select-none text-slate-600 dark:text-slate-500 text-right font-mono text-[11px] sm:text-xs leading-relaxed border-r border-slate-800/80 pr-3.5">
+              <div className="select-none text-zinc-500 text-right font-mono text-[11px] sm:text-xs leading-relaxed border-r border-border pr-3.5">
                 {codeLines.map((_, i) => (
                   <div key={i}>{i + 1}</div>
                 ))}
               </div>
-              <pre className="m-0 flex-1 overflow-visible bg-transparent p-0 text-slate-200">
+              <pre className="m-0 flex-1 overflow-visible bg-transparent p-0 text-zinc-200">
                 <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
               </pre>
             </div>
@@ -269,7 +269,7 @@ export function RichContentRenderer({
           return (
             <h1
               key={index}
-              className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 mt-8 mb-4"
+              className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-8 mb-4"
             >
               {inlineContent}
             </h1>
@@ -279,7 +279,7 @@ export function RichContentRenderer({
           return (
             <h2
               key={index}
-              className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 mt-6 mb-3 pb-2 border-b border-slate-200 dark:border-slate-800"
+              className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground mt-6 mb-3 pb-2 border-b border-border"
             >
               {inlineContent}
             </h2>
@@ -289,7 +289,7 @@ export function RichContentRenderer({
           return (
             <h3
               key={index}
-              className="text-lg font-semibold text-slate-900 dark:text-slate-200 mt-5 mb-2"
+              className="text-lg font-semibold text-foreground mt-5 mb-2"
             >
               {inlineContent}
             </h3>
@@ -298,7 +298,7 @@ export function RichContentRenderer({
         return (
           <h4
             key={index}
-            className="text-base font-semibold text-slate-900 dark:text-slate-200 mt-4 mb-2"
+            className="text-base font-semibold text-foreground mt-4 mb-2"
           >
             {inlineContent}
           </h4>
@@ -339,7 +339,7 @@ export function RichContentRenderer({
           return (
             <div
               key={index}
-              className={`my-5 rounded-xl border-l-4 p-4 border border-slate-200 dark:border-slate-800 ${borderColor}`}
+              className={`my-5 rounded-xl border-l-4 p-4 border border-border ${borderColor}`}
             >
               <div className="flex items-center gap-2 font-semibold text-xs uppercase tracking-wider mb-1.5">
                 <Icon className="h-4 w-4" />
@@ -353,7 +353,7 @@ export function RichContentRenderer({
         return (
           <blockquote
             key={index}
-            className="border-l-4 border-slate-300 dark:border-slate-700 pl-4 py-1 italic text-slate-600 dark:text-slate-400 my-4"
+            className="border-l-4 border-zinc-300 dark:border-zinc-700 pl-4 py-1 italic text-muted-foreground my-4"
           >
             {renderInlineTokens(bqToken.tokens)}
           </blockquote>
@@ -365,8 +365,8 @@ export function RichContentRenderer({
         const listToken = token as Tokens.List
         const ListTag = listToken.ordered ? 'ol' : 'ul'
         const listClass = listToken.ordered
-          ? 'list-decimal pl-5 space-y-1.5 my-4 text-slate-700 dark:text-slate-300'
-          : 'list-disc pl-5 space-y-1.5 my-4 text-slate-700 dark:text-slate-300'
+          ? 'list-decimal pl-5 space-y-1.5 my-4 text-foreground'
+          : 'list-disc pl-5 space-y-1.5 my-4 text-foreground'
 
         return (
           <ListTag key={index} className={listClass}>
@@ -379,7 +379,7 @@ export function RichContentRenderer({
 
       // 6. Horizontal Rule
       case 'hr':
-        return <hr key={index} className="my-8 border-slate-200 dark:border-slate-800" />
+        return <hr key={index} className="my-8 border-border" />
 
       // 7. Paragraph & Custom Embeds: [video:...], [website:...], ![img](...)
       case 'paragraph': {
@@ -394,12 +394,12 @@ export function RichContentRenderer({
           return (
             <div
               key={index}
-              className="my-6 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 shadow-xs"
+              className="my-6 overflow-hidden rounded-xl border border-border bg-card shadow-xs"
             >
-              <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-slate-900/80">
+              <div className="flex items-center gap-2 border-b border-border px-4 py-2.5 text-xs text-muted-foreground bg-muted/60">
                 <Film className="h-4 w-4 text-indigo-500" />
                 <span className="font-medium">Embedded Video Lecture</span>
-                <span className="text-slate-400">•</span>
+                <span className="text-muted-foreground">•</span>
                 <a
                   href={videoUrl}
                   target="_blank"
@@ -442,7 +442,7 @@ export function RichContentRenderer({
           return (
             <div
               key={index}
-              className="my-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 p-4 transition-all hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs"
+              className="my-5 rounded-xl border border-border bg-card p-4 transition-all hover:border-zinc-700 hover:shadow-xs"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
@@ -450,10 +450,10 @@ export function RichContentRenderer({
                     <Globe className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <h4 className="text-sm font-semibold text-foreground">
                       {title.trim()}
                     </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {hostname}
                     </p>
                   </div>
@@ -462,7 +462,7 @@ export function RichContentRenderer({
                   href={url.trim()}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-700"
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-xs hover:bg-muted"
                 >
                   Visit <ExternalLink className="h-3.5 w-3.5 ml-1" />
                 </a>
@@ -481,7 +481,7 @@ export function RichContentRenderer({
             <figure key={index} className="my-6 space-y-2">
               <div
                 onClick={() => setLightboxImage(src)}
-                className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-1 shadow-xs cursor-zoom-in transition-all hover:border-slate-400 dark:hover:border-slate-600"
+                className="group relative overflow-hidden rounded-xl border border-border bg-card p-1 shadow-xs cursor-zoom-in transition-all hover:border-zinc-700"
               >
                 <img
                   src={src}
@@ -489,12 +489,12 @@ export function RichContentRenderer({
                   className="w-full max-h-[520px] object-contain rounded-lg mx-auto transition-transform duration-200 group-hover:scale-[1.01]"
                   loading="lazy"
                 />
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-xs text-white text-[11px] px-2.5 py-1 rounded-md flex items-center gap-1">
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 backdrop-blur-xs text-white text-[11px] px-2.5 py-1 rounded-md flex items-center gap-1">
                   <ImageIcon className="h-3 w-3" /> Zoom
                 </div>
               </div>
               {alt && (
-                <figcaption className="text-center text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <figcaption className="text-center text-xs text-muted-foreground font-medium">
                   {alt}
                 </figcaption>
               )}
@@ -504,7 +504,7 @@ export function RichContentRenderer({
 
         // 7d. Standard Paragraph with full inline markdown (Bold, Italic, Strikethrough, Code, Links)
         return (
-          <p key={index} className="text-slate-800 dark:text-slate-200 leading-relaxed my-3.5">
+          <p key={index} className="text-foreground leading-relaxed my-3.5">
             {renderInlineTokens(pToken.tokens)}
           </p>
         )

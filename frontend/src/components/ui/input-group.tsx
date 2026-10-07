@@ -9,7 +9,7 @@ const InputGroup = React.forwardRef<HTMLDivElement, InputGroupProps>(
       <div
         ref={ref}
         className={cn(
-          'relative flex w-full items-center rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#11131a] shadow-2xs transition-colors focus-within:border-slate-400 dark:focus-within:border-slate-600 focus-within:ring-2 focus-within:ring-slate-900/10 dark:focus-within:ring-slate-100/10',
+          'relative flex w-full items-center rounded-lg border border-border bg-card shadow-2xs transition-colors focus-within:border-zinc-500 focus-within:ring-2 focus-within:ring-zinc-500/20',
           className
         )}
         {...props}
@@ -31,7 +31,7 @@ const InputGroupAddon = React.forwardRef<HTMLDivElement, InputGroupAddonProps>(
       <div
         ref={ref}
         className={cn(
-          'flex items-center text-slate-400 dark:text-slate-500 pointer-events-none select-none',
+          'flex items-center text-muted-foreground pointer-events-none select-none',
           placement === 'left' ? 'pl-3 pr-1.5' : 'pr-3 pl-1.5',
           className
         )}
@@ -53,7 +53,7 @@ const InputGroupInput = React.forwardRef<HTMLInputElement, InputGroupInputProps>
       <input
         ref={ref}
         className={cn(
-          'flex h-10 w-full min-w-0 bg-transparent px-2 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+          'flex h-10 w-full min-w-0 bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
           className
         )}
         {...props}

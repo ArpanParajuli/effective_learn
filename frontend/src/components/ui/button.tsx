@@ -4,22 +4,22 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 dark:focus-visible:ring-slate-300 disabled:pointer-events-none disabled:opacity-50 cursor-pointer shadow-xs active:scale-[0.98]',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer shadow-xs active:scale-[0.98]',
   {
     variants: {
       variant: {
         default:
-          'bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100',
+          'bg-primary text-primary-foreground hover:bg-primary/90',
         destructive:
-          'bg-red-600 text-white hover:bg-red-500',
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         outline:
-          'border border-slate-200 dark:border-slate-800 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100',
+          'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
         secondary:
-          'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700',
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost:
-          'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-none',
+          'hover:bg-accent hover:text-accent-foreground shadow-none',
         link:
-          'text-indigo-600 dark:text-indigo-400 underline-offset-4 hover:underline shadow-none',
+          'text-primary underline-offset-4 hover:underline shadow-none',
       },
       size: {
         default: 'h-9 px-4 py-2',

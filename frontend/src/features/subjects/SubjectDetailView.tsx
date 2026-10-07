@@ -80,19 +80,19 @@ export function SubjectDetailView() {
       <div>
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to All Subjects
         </Link>
       </div>
 
       {/* Subject Header */}
-      <div className="border-b border-slate-200 dark:border-slate-800 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-border pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             {subject?.title || 'Subject'}
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             {subject?.description || 'Curated chapters and technical notes.'}
           </p>
         </div>
@@ -107,14 +107,14 @@ export function SubjectDetailView() {
       {/* Chapters Listing */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
             Table of Contents ({chapters.length})
           </h2>
           {chapters.length > 2 && (
             <div className="w-full sm:w-64">
               <InputGroup className="h-8">
                 <InputGroupAddon placement="left" className="px-2">
-                  <Search className="h-3.5 w-3.5 text-slate-400" />
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
                 </InputGroupAddon>
                 <InputGroupInput
                   placeholder="Filter chapters..."
@@ -125,7 +125,7 @@ export function SubjectDetailView() {
                 {chapterFilter && (
                   <button
                     onClick={() => setChapterFilter('')}
-                    className="pr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    className="pr-2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -138,7 +138,7 @@ export function SubjectDetailView() {
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="p-5 border border-slate-200 dark:border-slate-800 space-y-2">
+              <Card key={i} className="p-5 border border-border space-y-2">
                 <div className="flex items-center gap-3">
                   <Skeleton className="h-6 w-6 rounded-full" />
                   <Skeleton className="h-5 w-2/3" />
@@ -151,10 +151,10 @@ export function SubjectDetailView() {
             ))}
           </div>
         ) : chapters.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 p-8 text-center">
-            <FileText className="h-7 w-7 mx-auto text-slate-400 mb-2" />
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">No chapters written yet</p>
-            <p className="text-xs text-slate-500 mt-1">Be the first to add a learning chapter in this subject.</p>
+          <div className="rounded-xl border border-dashed border-border p-8 text-center">
+            <FileText className="h-7 w-7 mx-auto text-muted-foreground mb-2" />
+            <p className="text-sm font-medium text-foreground">No chapters written yet</p>
+            <p className="text-xs text-muted-foreground mt-1">Be the first to add a learning chapter in this subject.</p>
             <Link to={`/write?subjectId=${subjectId}`}>
               <Button size="sm" className="mt-4">
                 Write First Chapter
@@ -162,8 +162,8 @@ export function SubjectDetailView() {
             </Link>
           </div>
         ) : filteredChapters.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 p-8 text-center space-y-2">
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+          <div className="rounded-xl border border-dashed border-border p-8 text-center space-y-2">
+            <p className="text-sm font-medium text-foreground">
               No chapters match "{chapterFilter}"
             </p>
             <Button variant="outline" size="sm" onClick={() => setChapterFilter('')}>
@@ -179,23 +179,23 @@ export function SubjectDetailView() {
                   to={`/read/${chapter.id}`}
                   className="group block"
                 >
-                  <Card className="hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-[#11131a]">
+                  <Card className="hover:border-zinc-700 transition-all bg-card">
                     <div className="p-5 flex items-start justify-between gap-4">
                       <div className="space-y-1.5 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted dark:bg-zinc-800 text-xs font-semibold text-foreground">
                             {startIndex + index + 1}
                           </span>
-                          <h3 className="text-base font-semibold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          <h3 className="text-base font-semibold text-foreground group-hover:text-indigo-400 transition-colors">
                             {chapter.title}
                           </h3>
                         </div>
                         {chapter.summary && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 pl-8 line-clamp-2">
+                          <p className="text-xs text-muted-foreground pl-8 line-clamp-2">
                             {chapter.summary}
                           </p>
                         )}
-                        <div className="flex items-center gap-4 pl-8 pt-1 text-[11px] text-slate-400">
+                        <div className="flex items-center gap-4 pl-8 pt-1 text-[11px] text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {chapter.estimatedMinutes} min read
@@ -203,7 +203,7 @@ export function SubjectDetailView() {
                           <span>{new Date(chapter.createdAtUtc).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all mt-1" />
+                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all mt-1" />
                     </div>
                   </Card>
                 </Link>
@@ -212,18 +212,18 @@ export function SubjectDetailView() {
 
             {/* Shadcn Pagination Bar for Chapters */}
             {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                <p className="text-xs text-slate-500 dark:text-slate-400 order-2 sm:order-1">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground order-2 sm:order-1">
                   Showing{' '}
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-foreground">
                     {startIndex + 1}
                   </span>
                   –
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-foreground">
                     {Math.min(startIndex + CHAPTERS_PER_PAGE, filteredChapters.length)}
                   </span>{' '}
                   of{' '}
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-foreground">
                     {filteredChapters.length}
                   </span>{' '}
                   chapters

@@ -27,17 +27,17 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-[#090a0f]/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Brand */}
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-950 font-bold text-base shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-base shadow-sm">
               E
             </div>
             <div>
-              <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white">
-                Effective<span className="text-slate-500 dark:text-slate-400 font-normal">Learn</span>
+              <span className="text-base font-bold tracking-tight text-foreground">
+                Effective<span className="text-muted-foreground font-normal">Learn</span>
               </span>
             </div>
           </Link>
@@ -48,8 +48,8 @@ export function Navbar() {
               to="/"
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 location.pathname === '/'
-                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-muted text-foreground font-semibold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
               }`}
             >
               Subjects
@@ -58,8 +58,8 @@ export function Navbar() {
               to="/graph"
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 location.pathname === '/graph'
-                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-muted text-foreground font-semibold'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
               }`}
             >
               <Network className="h-3.5 w-3.5" />
@@ -86,7 +86,7 @@ export function Navbar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 font-semibold text-xs shadow-2xs hover:ring-2 hover:ring-slate-400 dark:hover:ring-slate-600 transition-all cursor-pointer"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold text-xs shadow-2xs hover:ring-2 hover:ring-zinc-400 transition-all cursor-pointer"
                   aria-label="User profile"
                 >
                   {getInitials(user.name)}
@@ -95,10 +95,10 @@ export function Navbar() {
               <DropdownMenuContent align="end" className="w-56 p-1">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-semibold leading-none text-slate-900 dark:text-white">
+                    <p className="text-sm font-semibold leading-none text-foreground">
                       {user.name}
                     </p>
-                    <p className="text-xs leading-none text-slate-500 dark:text-slate-400">
+                    <p className="text-xs leading-none text-muted-foreground">
                       {user.email}
                     </p>
                   </div>

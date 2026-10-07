@@ -38,7 +38,7 @@ export function ChapterReaderPage() {
   if (isLoading) {
     return (
       <div className="max-w-3xl mx-auto space-y-8 py-6">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div className="flex items-center justify-between border-b border-border pb-4">
           <Skeleton className="h-4 w-32" />
           <div className="flex gap-2">
             <Skeleton className="h-7 w-16 rounded-md" />
@@ -68,7 +68,7 @@ export function ChapterReaderPage() {
   if (error || !chapter) {
     return (
       <div className="max-w-md mx-auto py-16 text-center space-y-4">
-        <p className="text-base font-semibold text-slate-900 dark:text-slate-100">Chapter not found</p>
+        <p className="text-base font-semibold text-foreground">Chapter not found</p>
         <Link to="/">
           <Button variant="outline" size="sm">
             <ArrowLeft className="h-4 w-4 mr-1.5" /> Return to Subjects
@@ -81,10 +81,10 @@ export function ChapterReaderPage() {
   return (
     <article className="max-w-3xl mx-auto space-y-8 py-4">
       {/* Top Navigation Bar */}
-      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 pb-4">
+      <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border pb-4">
         <Link
           to={`/subjects/${chapter.subjectId}`}
-          className="inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors"
+          className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           <span>{chapter.subjectTitle || 'Back to Subject'}</span>
@@ -92,12 +92,12 @@ export function ChapterReaderPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleShare}
-            className="flex items-center gap-1 rounded-md px-2.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="flex items-center gap-1 rounded-md px-2.5 py-1 hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <Share2 className="h-3.5 w-3.5" /> Share
           </button>
           <Link to={`/write?chapterId=${chapter.id}&subjectId=${chapter.subjectId}`}>
-            <button className="flex items-center gap-1 rounded-md px-2.5 py-1 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+            <button className="flex items-center gap-1 rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-zinc-800 transition-colors cursor-pointer">
               <Edit3 className="h-3.5 w-3.5" /> Edit
             </button>
           </Link>
@@ -113,22 +113,22 @@ export function ChapterReaderPage() {
               Chapter {currentIndex + 1} of {chapters.length}
             </Badge>
           )}
-          <span className="text-xs text-slate-400 flex items-center gap-1">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
             <Clock className="h-3 w-3" /> {chapter.estimatedMinutes} min read
           </span>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
           {chapter.title}
         </h1>
 
         {chapter.summary && (
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-normal">
             {chapter.summary}
           </p>
         )}
 
-        <div className="flex items-center gap-2 text-xs text-slate-400 pt-2 border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-b border-border pb-6">
           <Calendar className="h-3.5 w-3.5" />
           <span>Published on {new Date(chapter.createdAtUtc).toLocaleDateString()}</span>
         </div>
@@ -140,21 +140,21 @@ export function ChapterReaderPage() {
       </div>
 
       {/* Chapter Pagination / Adjacent Navigation */}
-      <div className="mt-14 pt-8 border-t border-slate-200 dark:border-slate-800 space-y-6">
+      <div className="mt-14 pt-8 border-t border-border space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {prevChapter ? (
             <Link
               to={`/read/${prevChapter.id}`}
-              className="group flex items-center gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all text-left bg-white dark:bg-[#11131a]"
+              className="group flex items-center gap-3 p-4 rounded-xl border border-border hover:border-zinc-700 transition-all text-left bg-card"
             >
-              <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:-translate-x-0.5 transition-transform shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-muted dark:bg-zinc-800 flex items-center justify-center text-muted-foreground group-hover:-translate-x-0.5 transition-transform shrink-0">
                 <ChevronLeft className="h-4 w-4" />
               </div>
               <div className="overflow-hidden">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
                   Previous Chapter
                 </p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                <p className="text-sm font-semibold text-foreground line-clamp-1 group-hover:text-indigo-400 transition-colors">
                   {prevChapter.title}
                 </p>
               </div>
@@ -166,17 +166,17 @@ export function ChapterReaderPage() {
           {nextChapter ? (
             <Link
               to={`/read/${nextChapter.id}`}
-              className="group flex items-center justify-end gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all text-right bg-white dark:bg-[#11131a]"
+              className="group flex items-center justify-end gap-3 p-4 rounded-xl border border-border hover:border-zinc-700 transition-all text-right bg-card"
             >
               <div className="overflow-hidden text-right">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
                   Next Chapter
                 </p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                <p className="text-sm font-semibold text-foreground line-clamp-1 group-hover:text-indigo-400 transition-colors">
                   {nextChapter.title}
                 </p>
               </div>
-              <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:translate-x-0.5 transition-transform shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-muted dark:bg-zinc-800 flex items-center justify-center text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0">
                 <ChevronRight className="h-4 w-4" />
               </div>
             </Link>
