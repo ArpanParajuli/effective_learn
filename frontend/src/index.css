@@ -164,17 +164,108 @@ body {
 
 /* Brain-Effective Reading Mode Styles */
 .reader-tint-sepia {
+  --background: 40 30% 96%;
+  --foreground: 30 25% 15%;
+  --card: 40 30% 96%;
+  --card-foreground: 30 25% 15%;
+  --popover: 40 30% 96%;
+  --popover-foreground: 30 25% 15%;
+  --muted: 38 25% 90%;
+  --muted-foreground: 30 15% 40%;
+  --accent: 38 25% 90%;
+  --accent-foreground: 30 25% 15%;
+  --border: 35 20% 82%;
+  --secondary: 38 25% 90%;
+  --secondary-foreground: 30 25% 15%;
   background-color: #fbf7ee !important;
   color: #2c251d !important;
 }
+
+.reader-tint-sepia h1,
+.reader-tint-sepia h2,
+.reader-tint-sepia h3,
+.reader-tint-sepia h4,
+.reader-tint-sepia h5,
+.reader-tint-sepia h6,
+.reader-tint-sepia p,
+.reader-tint-sepia span,
+.reader-tint-sepia li,
+.reader-tint-sepia td,
+.reader-tint-sepia strong {
+  color: #2c251d;
+}
+
+.reader-tint-sepia .text-foreground {
+  color: #2c251d !important;
+}
+
+.reader-tint-sepia .text-muted-foreground {
+  color: #78593a !important;
+}
+
+.reader-tint-sepia .border-border {
+  border-color: #e3d7c5 !important;
+}
+
+.reader-tint-sepia .bg-card {
+  background-color: #fbf7ee !important;
+}
+
 .dark .reader-tint-sepia {
   background-color: #171512 !important;
   color: #e0d6c8 !important;
 }
 
 .reader-tint-midnight {
-  background-color: #050508 !important;
-  color: #e2e2e8 !important;
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  background-color: #09090b !important;
+  color: #f4f4f5 !important;
+}
+
+.reader-tint-midnight h1,
+.reader-tint-midnight h2,
+.reader-tint-midnight h3,
+.reader-tint-midnight h4,
+.reader-tint-midnight h5,
+.reader-tint-midnight h6,
+.reader-tint-midnight p,
+.reader-tint-midnight span,
+.reader-tint-midnight li,
+.reader-tint-midnight td,
+.reader-tint-midnight strong {
+  color: #f4f4f5;
+}
+
+.reader-tint-midnight .text-foreground {
+  color: #f4f4f5 !important;
+}
+
+.reader-tint-midnight .text-muted-foreground {
+  color: #a1a1aa !important;
+}
+
+.reader-tint-midnight .border-border {
+  border-color: #27272a !important;
+}
+
+.reader-tint-midnight .bg-muted {
+  background-color: #18181b !important;
+}
+
+.reader-tint-midnight .bg-card {
+  background-color: #0c0a09 !important;
 }
 
 /* Brain Focus Spotlight: gently dims non-hovered paragraphs to lock focus */
@@ -191,7 +282,7 @@ body {
   font-size: inherit;
   font-family: inherit;
   line-height: 1.8;
-  color: var(--foreground);
+  color: inherit;
 }
 
 .prose-reader p {
@@ -284,19 +375,27 @@ body {
 }
 
 .prose-reader pre {
-  background-color: var(--secondary);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 1rem;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 1rem !important;
   overflow-x: auto;
   font-size: 0.875rem;
-  margin-top: 1.25rem;
-  margin-bottom: 1.25rem;
+  margin: 0 !important;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+.prose-reader pre code {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: inherit !important;
+}
+
 .prose-reader code:not(pre code) {
-  background-color: var(--secondary);
+  background-color: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--border);
   padding: 0.15rem 0.4rem;
   border-radius: 0.25rem;
   font-size: 0.9em;

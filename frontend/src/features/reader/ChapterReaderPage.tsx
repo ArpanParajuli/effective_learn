@@ -12,6 +12,7 @@ import {
   Type,
   List,
   Minimize2,
+  Presentation,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchChapterById, fetchChaptersBySubject } from '@/lib/api'
@@ -179,6 +180,11 @@ export function ChapterReaderPage() {
             toast.info('Focus Mode enabled. Press Esc or F to exit.')
           }
         }
+      }
+
+      if ((e.key === 'p' || e.key === 'P') && !e.ctrlKey && !e.metaKey && chapter?.id) {
+        e.preventDefault()
+        navigate(`/present/${chapter.id}`)
       }
 
       if (e.key === 'Escape' && isFocusMode) {
@@ -626,7 +632,7 @@ export function ChapterReaderPage() {
         style={{ width: `${scrollProgress}%` }}
       />
 
-      <article className={`${widthClass} mx-auto space-y-8 py-4 ${tintClass}`}>
+      <div className={`${widthClass} mx-auto space-y-6 py-4`}>
         {/* Top Navigation & Controls Bar */}
         <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border pb-3.5 gap-2">
           <Breadcrumb className="min-w-0">
@@ -670,6 +676,21 @@ export function ChapterReaderPage() {
               </kbd>
             </Button>
 
+            {/* Presentation Mode Trigger */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/present/${chapter.id}`)}
+              className="h-7 px-2.5 text-xs gap-1.5 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 cursor-pointer font-medium shadow-2xs"
+              title="Launch Slide Presentation (P)"
+            >
+              <Presentation className="h-3.5 w-3.5 text-purple-500" />
+              <span>Present</span>
+              <kbd className="hidden sm:inline-block ml-0.5 px-1 py-0.2 bg-muted text-[9px] rounded font-mono text-muted-foreground">
+                P
+              </kbd>
+            </Button>
+
             <OutlineMenu />
             <AppearanceMenu />
 
@@ -696,7 +717,15 @@ export function ChapterReaderPage() {
           </div>
         </div>
 
-        {/* Header Info */}
+        {/* Reader Paper Canvas / Document */}
+        <article
+          className={`space-y-8 p-6 sm:p-10 rounded-2xl transition-all duration-200 ${
+            tintClass
+              ? `${tintClass} border shadow-md`
+              : 'bg-card border border-border/70 shadow-xs'
+          }`}
+        >
+          {/* Header Info */}
         <header className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{chapter.subjectTitle}</Badge>
@@ -783,6 +812,7 @@ export function ChapterReaderPage() {
           </div>
         </div>
       </article>
-    </>
+    </div>
+  </>
   )
 }

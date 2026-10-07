@@ -22,6 +22,7 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  Presentation,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchSubjects, fetchAllChapters } from '@/lib/api'
@@ -36,9 +37,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 export interface GraphNode extends SimulationNodeDatum {
   id: string
   title: string
-  type: 'subject' | 'chapter'
+  type: 'subject' | 'chapter' | 'topic'
   subjectId?: string
   subjectTitle?: string
+  chapterId?: string
+  chapterTitle?: string
   summary?: string
   color: string
   radius: number
@@ -69,6 +72,7 @@ export function KnowledgeGraphView() {
   const [selectedNode, setSelectedNode] = React.useState<GraphNode | null>(null)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [activeSubjectFilter, setActiveSubjectFilter] = React.useState<string>('all')
+  const [showSubtopics, setShowSubtopics] = React.useState(true)
 
   // Smooth scroll controller for category pills
   const pillsContainerRef = React.useRef<HTMLDivElement | null>(null)
@@ -205,10 +209,44 @@ export function KnowledgeGraphView() {
           target: c.id,
         })
       }
+
+      // Extract subtopics/modules from chapter content if showSubtopics is enabled
+      if (showSubtopics && c.content) {
+        const lines = c.content.split('\n')
+        let topicCount = 0
+        lines.forEach((line: string) => {
+          const match = line.match(/^#{2,3}\s+(.+)$/)
+          if (match && topicCount < 4) {
+            const topicTitle = match[1].trim()
+            if (topicTitle.toLowerCase() !== c.title.toLowerCase()) {
+              const topicId = `${c.id}-subtopic-${topicCount}`
+              topicCount++
+
+              nodes.push({
+                id: topicId,
+                title: topicTitle,
+                type: 'topic',
+                chapterId: c.id,
+                chapterTitle: c.title,
+                subjectId: c.subjectId,
+                subjectTitle: parentSubject?.title || 'Subject',
+                color,
+                radius: 7.5,
+                summary: `Subtopic module of ${c.title}`,
+              })
+
+              links.push({
+                source: c.id,
+                target: topicId,
+              })
+            }
+          }
+        })
+      }
     })
 
     return { nodes, links }
-  }, [subjects, chapters])
+  }, [subjects, chapters, showSubtopics])
 
   // Filter nodes if subject filter is active
   const filteredData = React.useMemo(() => {
@@ -219,7 +257,7 @@ export function KnowledgeGraphView() {
 
     const validNodeIds = new Set<string>([subjectNode.id])
     graphData.nodes.forEach((n) => {
-      if (n.type === 'chapter' && n.subjectId === activeSubjectFilter) {
+      if ((n.type === 'chapter' || n.type === 'topic') && n.subjectId === activeSubjectFilter) {
         validNodeIds.add(n.id)
       }
     })
@@ -286,11 +324,21 @@ export function KnowledgeGraphView() {
         'link',
         forceLink<GraphNode, GraphLink>(links)
           .id((d) => d.id)
-          .distance(90)
+          .distance((l: any) => {
+            const tgt = typeof l.target === 'object' ? l.target.type : ''
+            const src = typeof l.source === 'object' ? l.source.type : ''
+            return tgt === 'topic' || src === 'topic' ? 45 : 95
+          })
       )
-      .force('charge', forceManyBody().strength(-200))
+      .force(
+        'charge',
+        forceManyBody().strength((d: any) => (d.type === 'topic' ? -80 : -200))
+      )
       .force('center', forceCenter(width / 2, height / 2))
-      .force('collide', forceCollide().radius((d: any) => d.radius + 14))
+      .force(
+        'collide',
+        forceCollide().radius((d: any) => d.radius + (d.type === 'topic' ? 6 : 12))
+      )
       .alpha(0.6)
       .alphaDecay(0.04) // Cools down quickly to eliminate bouncing
       .velocityDecay(0.4) // High damping for calm, rock-solid motion
@@ -334,13 +382,19 @@ export function KnowledgeGraphView() {
           !source.title.toLowerCase().includes(curQuery) &&
           !target.title.toLowerCase().includes(curQuery)
 
+        const isTopicLink = source.type === 'topic' || target.type === 'topic'
+
         ctx.strokeStyle = isDimmed
           ? isDark
-            ? 'rgba(255, 255, 255, 0.03)'
-            : 'rgba(0, 0, 0, 0.03)'
+            ? 'rgba(255, 255, 255, 0.02)'
+            : 'rgba(0, 0, 0, 0.02)'
+          : isTopicLink
+          ? isDark
+            ? 'rgba(255, 255, 255, 0.08)'
+            : 'rgba(15, 23, 42, 0.07)'
           : isDark
-          ? 'rgba(255, 255, 255, 0.15)'
-          : 'rgba(15, 23, 42, 0.12)'
+          ? 'rgba(255, 255, 255, 0.16)'
+          : 'rgba(15, 23, 42, 0.13)'
         ctx.stroke()
       })
 
@@ -371,23 +425,37 @@ export function KnowledgeGraphView() {
         }
 
         // Draw Labels
-        ctx.font = node.type === 'subject' ? '600 12px -apple-system, system-ui' : '500 10px -apple-system, system-ui'
+        ctx.font =
+          node.type === 'subject'
+            ? '600 12px -apple-system, system-ui'
+            : node.type === 'chapter'
+            ? '500 10.5px -apple-system, system-ui'
+            : '400 9px -apple-system, system-ui'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
 
         const labelColor = isDark
           ? isHovered || isSelected || isSearchMatch
             ? '#ffffff'
+            : node.type === 'topic'
+            ? '#71717a'
             : '#a1a1aa'
           : isHovered || isSelected || isSearchMatch
           ? '#0f172a'
+          : node.type === 'topic'
+          ? '#64748b'
           : '#475569'
 
         ctx.fillStyle = labelColor
 
+        const maxLen = node.type === 'topic' ? 18 : 22
         const displayTitle =
-          node.title.length > 22 ? `${node.title.slice(0, 20)}…` : node.title
-        ctx.fillText(displayTitle, node.x, node.y + r + 4)
+          node.title.length > maxLen ? `${node.title.slice(0, maxLen - 2)}…` : node.title
+
+        // When zoomed far out, show topic labels on hover or selection to keep clean
+        if (node.type !== 'topic' || t.k > 0.65 || isHovered || isSelected || isSearchMatch) {
+          ctx.fillText(displayTitle, node.x, node.y + r + 3)
+        }
       })
 
       ctx.restore()
@@ -613,6 +681,18 @@ export function KnowledgeGraphView() {
           </InputGroup>
         </div>
 
+        {/* Subtopics Hierarchy Toggle */}
+        <Button
+          variant={showSubtopics ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setShowSubtopics((prev) => !prev)}
+          className="h-9 px-3 text-xs gap-1.5 shrink-0"
+          title="Toggle Subtopics & Modules in Knowledge Graph"
+        >
+          <Layers className="h-3.5 w-3.5" />
+          <span>{showSubtopics ? 'Subtopics On' : 'Subtopics Off'}</span>
+        </Button>
+
         {/* Responsive Horizontal Scrollable Category Filter Pills */}
         <div className="flex-1 min-w-0 relative flex items-center group">
           {/* Scroll Left Button */}
@@ -720,11 +800,15 @@ export function KnowledgeGraphView() {
           <div className="space-y-1.5 text-[11px] text-muted-foreground">
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full bg-indigo-500 inline-block" />
-              <span>Subject Category Hub</span>
+              <span>Subject Category</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-zinc-500 inline-block" />
-              <span>Chapter / Concept Node</span>
+              <span className="h-2.5 w-2.5 rounded-full bg-zinc-500 inline-block" />
+              <span>Chapter Module</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-slate-400 inline-block" />
+              <span>Subtopic Concept</span>
             </div>
           </div>
         </div>
@@ -738,11 +822,11 @@ export function KnowledgeGraphView() {
                 className="text-[10px] capitalize font-medium"
                 style={{ borderColor: selectedNode.color, color: selectedNode.color }}
               >
-                {selectedNode.type}
+                {selectedNode.type === 'topic' ? 'Subtopic Module' : selectedNode.type}
               </Badge>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -752,7 +836,12 @@ export function KnowledgeGraphView() {
               <h3 className="text-sm font-bold text-foreground leading-snug">
                 {selectedNode.title}
               </h3>
-              {selectedNode.subjectTitle && (
+              {selectedNode.type === 'topic' && selectedNode.chapterTitle && (
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Part of <span className="font-medium text-foreground">{selectedNode.chapterTitle}</span> ({selectedNode.subjectTitle})
+                </p>
+              )}
+              {selectedNode.type === 'chapter' && selectedNode.subjectTitle && (
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   Part of {selectedNode.subjectTitle}
                 </p>
@@ -765,29 +854,51 @@ export function KnowledgeGraphView() {
               </p>
             )}
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border">
+            <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground pt-2 border-t border-border">
               {selectedNode.type === 'chapter' ? (
                 <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> {selectedNode.estimatedMinutes || 5} min read
+                  <Clock className="h-3 w-3" /> {selectedNode.estimatedMinutes || 5}m read
                 </span>
+              ) : selectedNode.type === 'topic' ? (
+                <span className="text-[10px] text-zinc-400">Nested Concept</span>
               ) : (
-                <span>{selectedNode.chapterCount || 0} chapters linked</span>
+                <span>{selectedNode.chapterCount || 0} chapters</span>
               )}
 
-              <Button
-                size="sm"
-                className="h-7 text-xs gap-1"
-                onClick={() => {
-                  if (selectedNode.type === 'chapter') {
-                    navigate(`/read/${selectedNode.id}`)
-                  } else {
-                    navigate(`/subjects/${selectedNode.id}`)
-                  }
-                }}
-              >
-                <span>{selectedNode.type === 'chapter' ? 'Read' : 'Explore'}</span>
-                <ArrowRight className="h-3 w-3" />
-              </Button>
+              <div className="flex items-center gap-1.5 ml-auto">
+                {(selectedNode.type === 'chapter' || selectedNode.type === 'topic') && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 cursor-pointer"
+                    title="Launch presentation for this chapter"
+                    onClick={() => {
+                      const chId = selectedNode.type === 'topic' ? selectedNode.chapterId : selectedNode.id
+                      if (chId) navigate(`/present/${chId}`)
+                    }}
+                  >
+                    <Presentation className="h-3 w-3" />
+                    <span>Present</span>
+                  </Button>
+                )}
+
+                <Button
+                  size="sm"
+                  className="h-7 text-xs gap-1 cursor-pointer"
+                  onClick={() => {
+                    if (selectedNode.type === 'topic' && selectedNode.chapterId) {
+                      navigate(`/read/${selectedNode.chapterId}`)
+                    } else if (selectedNode.type === 'chapter') {
+                      navigate(`/read/${selectedNode.id}`)
+                    } else {
+                      navigate(`/subjects/${selectedNode.id}`)
+                    }
+                  }}
+                >
+                  <span>{selectedNode.type === 'subject' ? 'Explore' : 'Read'}</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           </Card>
         )}

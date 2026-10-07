@@ -328,3 +328,35 @@ export async function updateChapter(payload: UpdateChapterPayload): Promise<void
     }
   }
 }
+
+export interface UploadMediaResult {
+  url: string
+  fileName: string
+  savedFileName: string
+  contentType: string
+  sizeBytes: number
+  mediaType: 'image' | 'video'
+}
+
+export async function uploadMediaFile(
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<UploadMediaResult> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await apiClient.post<UploadMediaResult>('/media/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 180000, // 3 minutes for high-res video uploads
+    onUploadProgress: (progressEvent) => {
+      if (progressEvent.total && onProgress) {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+        onProgress(percentCompleted)
+      }
+    },
+  })
+
+  return response.data
+}

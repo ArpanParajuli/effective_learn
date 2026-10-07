@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Plus, Clock, FileText, ChevronRight, Search, X } from 'lucide-react'
+import { Plus, Clock, FileText, ChevronRight, Search, X, Presentation } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchSubjects, fetchChaptersBySubject } from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
@@ -186,41 +187,89 @@ export function SubjectDetailView() {
         ) : (
           <div className="space-y-4">
             <div className="space-y-3">
-              {paginatedChapters.map((chapter, index) => (
-                <Link
-                  key={chapter.id}
-                  to={`/read/${chapter.id}`}
-                  className="group block"
-                >
-                  <Card className="hover:border-zinc-700 transition-all bg-card">
-                    <div className="p-5 flex items-start justify-between gap-4">
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted dark:bg-zinc-800 text-xs font-semibold text-foreground">
-                            {startIndex + index + 1}
-                          </span>
-                          <h3 className="text-base font-semibold text-foreground group-hover:text-indigo-400 transition-colors">
-                            {chapter.title}
-                          </h3>
+              {paginatedChapters.map((chapter, index) => {
+                const contentStr = chapter.content || ''
+                const rawMatches = contentStr ? contentStr.match(/^#{2,3}\s+(.+)$/gm) : null
+                const subtopicMatches: string[] = rawMatches
+                  ? rawMatches
+                      .map((m: string) => m.replace(/^#{2,3}\s+/, '').trim())
+                      .filter((t: string) => t.toLowerCase() !== chapter.title.toLowerCase())
+                      .slice(0, 3)
+                  : []
+
+                return (
+                  <Link
+                    key={chapter.id}
+                    to={`/read/${chapter.id}`}
+                    className="group block"
+                  >
+                    <Card className="hover:border-zinc-700 transition-all bg-card">
+                      <div className="p-5 flex items-start justify-between gap-4">
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted dark:bg-zinc-800 text-xs font-semibold text-foreground shrink-0">
+                              {startIndex + index + 1}
+                            </span>
+                            <h3 className="text-base font-semibold text-foreground group-hover:text-indigo-400 transition-colors truncate">
+                              {chapter.title}
+                            </h3>
+                          </div>
+                          {chapter.summary && (
+                            <p className="text-xs text-muted-foreground pl-8 line-clamp-2">
+                              {chapter.summary}
+                            </p>
+                          )}
+
+                          {/* Hierarchical Subtopic Modules */}
+                          {subtopicMatches.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 pl-8 pt-1">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mr-0.5">
+                                Modules:
+                              </span>
+                              {subtopicMatches.map((topic: string, tIdx: number) => (
+                                <Badge
+                                  key={tIdx}
+                                  variant="secondary"
+                                  className="text-[10px] font-normal px-2 py-0 bg-muted/70 text-muted-foreground"
+                                >
+                                  {topic}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-4 pl-8 pt-1 text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {chapter.estimatedMinutes} min read
+                            </span>
+                            <span>{new Date(chapter.createdAtUtc).toLocaleDateString()}</span>
+                          </div>
                         </div>
-                        {chapter.summary && (
-                          <p className="text-xs text-muted-foreground pl-8 line-clamp-2">
-                            {chapter.summary}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 pl-8 pt-1 text-[11px] text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {chapter.estimatedMinutes} min read
-                          </span>
-                          <span>{new Date(chapter.createdAtUtc).toLocaleDateString()}</span>
+
+                        <div className="flex items-center gap-2 shrink-0 self-center">
+                          <Link
+                            to={`/present/${chapter.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hidden sm:inline-flex"
+                          >
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                              title="Present this chapter in slide deck mode"
+                            >
+                              <Presentation className="h-3.5 w-3.5" />
+                              <span>Present</span>
+                            </Button>
+                          </Link>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                         </div>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all mt-1" />
-                    </div>
-                  </Card>
-                </Link>
-              ))}
+                    </Card>
+                  </Link>
+                )
+              })}
             </div>
 
             {/* Shadcn Pagination Bar for Chapters */}

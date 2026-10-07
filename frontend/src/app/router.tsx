@@ -2,8 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { SubjectsPage } from '@/features/subjects/SubjectsPage'
 import { SubjectDetailView } from '@/features/subjects/SubjectDetailView'
 import { ChapterReaderPage } from '@/features/reader/ChapterReaderPage'
+import { ChapterPresentationView } from '@/features/presentation/ChapterPresentationView'
 import { ChapterEditorPage } from '@/features/editor/ChapterEditorPage'
-import { AuthPage } from '@/features/auth/AuthPage'
 import { KnowledgeGraphView } from '@/features/graph/KnowledgeGraphView'
 
 export function AppRouter() {
@@ -13,10 +13,8 @@ export function AppRouter() {
       <Route path="/graph" element={<KnowledgeGraphView />} />
       <Route path="/subjects/:subjectId" element={<SubjectDetailView />} />
       <Route path="/read/:chapterId" element={<ChapterReaderPage />} />
+      <Route path="/present/:chapterId" element={<ChapterPresentationView />} />
       <Route path="/write" element={<ChapterEditorPage />} />
-      <Route path="/login" element={<AuthPage />} />
-      <Route path="/register" element={<AuthPage />} />
-      <Route path="/auth" element={<AuthPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

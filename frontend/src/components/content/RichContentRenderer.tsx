@@ -229,7 +229,7 @@ export function RichContentRenderer({
         return (
           <div
             key={index}
-            className="relative my-6 rounded-xl border border-border bg-zinc-950 text-zinc-100 overflow-hidden text-xs sm:text-sm font-mono shadow-md"
+            className="not-typeset relative my-6 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 overflow-hidden text-xs sm:text-sm font-mono shadow-md"
           >
             {/* Code Window Header Bar */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900/90 text-xs text-zinc-400">
@@ -261,9 +261,9 @@ export function RichContentRenderer({
             </div>
 
             {/* Code Body */}
-            <pre className="p-4 overflow-x-auto text-xs sm:text-sm leading-relaxed m-0 bg-transparent">
+            <pre className="p-4 overflow-x-auto text-xs sm:text-sm leading-relaxed m-0 !bg-transparent !border-0 text-zinc-100">
               <code
-                className={`language-${language} code-obsidian`}
+                className={`language-${language} code-obsidian !bg-transparent !border-0`}
                 dangerouslySetInnerHTML={{ __html: highlightedHtml }}
               />
             </pre>
@@ -447,7 +447,11 @@ export function RichContentRenderer({
             >
               <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-xs text-muted-foreground bg-muted/60">
                 <Film className="h-4 w-4 text-indigo-500" />
-                <span className="font-semibold text-foreground">Video Lecture</span>
+                <span className="font-semibold text-foreground">
+                  {videoUrl.startsWith('/api/') || videoUrl.startsWith('/uploads/')
+                    ? 'Uploaded Video Media'
+                    : 'Video Lecture'}
+                </span>
                 <span className="text-muted-foreground">•</span>
                 <a
                   href={videoUrl}
@@ -458,7 +462,7 @@ export function RichContentRenderer({
                   {videoUrl}
                 </a>
               </div>
-              <div className="relative aspect-video w-full">
+              <div className="relative aspect-video w-full bg-black">
                 {youtubeId ? (
                   <iframe
                     src={`https://www.youtube.com/embed/${youtubeId}`}
@@ -468,7 +472,13 @@ export function RichContentRenderer({
                     className="h-full w-full border-0"
                   />
                 ) : (
-                  <video src={videoUrl} controls className="h-full w-full object-cover" />
+                  <video
+                    src={videoUrl}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    className="h-full w-full object-contain bg-black"
+                  />
                 )}
               </div>
             </div>

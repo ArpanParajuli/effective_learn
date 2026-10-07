@@ -28,10 +28,16 @@ import {
   FileText,
   X,
   ChevronRight,
+  UploadCloud,
+  Upload,
+  Play,
+  FileVideo,
+  Loader2,
+  Trash2,
 } from 'lucide-react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchSubjects, fetchChapterById, createChapter, updateChapter } from '@/lib/api'
+import { fetchSubjects, fetchChapterById, createChapter, updateChapter, uploadMediaFile } from '@/lib/api'
 import { RichContentRenderer } from '@/components/content/RichContentRenderer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -94,15 +100,28 @@ export function ChapterEditorPage() {
 
   // Modals for inserting media & code
   const [showImageModal, setShowImageModal] = React.useState(false)
+  const [imageSourceTab, setImageSourceTab] = React.useState<'local' | 'url'>('local')
   const [imageUrl, setImageUrl] = React.useState('')
   const [imageAlt, setImageAlt] = React.useState('')
+  const [localImageFile, setLocalImageFile] = React.useState<File | null>(null)
+  const [localImagePreview, setLocalImagePreview] = React.useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = React.useState(false)
+  const [imageUploadProgress, setImageUploadProgress] = React.useState(0)
+  const imageFileInputRef = React.useRef<HTMLInputElement>(null)
 
   const [showCodeModal, setShowCodeModal] = React.useState(false)
   const [codeLanguage, setCodeLanguage] = React.useState('csharp')
   const [codeSnippet, setCodeSnippet] = React.useState('')
 
   const [showVideoModal, setShowVideoModal] = React.useState(false)
+  const [videoSourceTab, setVideoSourceTab] = React.useState<'local' | 'url'>('local')
   const [videoUrl, setVideoUrl] = React.useState('')
+  const [videoTitle, setVideoTitle] = React.useState('')
+  const [localVideoFile, setLocalVideoFile] = React.useState<File | null>(null)
+  const [localVideoPreview, setLocalVideoPreview] = React.useState<string | null>(null)
+  const [isUploadingVideo, setIsUploadingVideo] = React.useState(false)
+  const [videoUploadProgress, setVideoUploadProgress] = React.useState(0)
+  const videoFileInputRef = React.useRef<HTMLInputElement>(null)
 
   const [showWebsiteModal, setShowWebsiteModal] = React.useState(false)
   const [websiteUrl, setWebsiteUrl] = React.useState('')
@@ -539,16 +558,80 @@ export function ChapterEditorPage() {
     setTimeout(() => setCopiedMarkdown(false), 2000)
   }
 
+  // File Selection Handlers
+  const handleSelectImageFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file (.png, .jpg, .webp, .svg, .gif).')
+      return
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error('Image size exceeds 25 MB limit.')
+      return
+    }
+    setLocalImageFile(file)
+    const previewUrl = URL.createObjectURL(file)
+    setLocalImagePreview(previewUrl)
+    if (!imageAlt) {
+      setImageAlt(file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '))
+    }
+  }
+
+  const handleSelectVideoFile = (file: File) => {
+    if (!file.type.startsWith('video/')) {
+      toast.error('Please select a valid video file (.mp4, .webm, .mov, etc.).')
+      return
+    }
+    if (file.size > 150 * 1024 * 1024) {
+      toast.error('Video size exceeds 150 MB limit.')
+      return
+    }
+    setLocalVideoFile(file)
+    const previewUrl = URL.createObjectURL(file)
+    setLocalVideoPreview(previewUrl)
+    if (!videoTitle) {
+      setVideoTitle(file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '))
+    }
+  }
+
   // Insert Media Handlers
-  const handleInsertImage = (e: React.FormEvent) => {
+  const handleInsertImage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!imageUrl.trim()) return
-    const altText = imageAlt.trim() || 'Architecture diagram'
-    handleInsertBlock(`![${altText}](${imageUrl.trim()})`)
-    setImageUrl('')
-    setImageAlt('')
-    setShowImageModal(false)
-    toast.success('Image integrated!')
+
+    if (imageSourceTab === 'local') {
+      if (!localImageFile) {
+        toast.error('Please choose an image file from your computer.')
+        return
+      }
+
+      setIsUploadingImage(true)
+      setImageUploadProgress(0)
+      try {
+        const result = await uploadMediaFile(localImageFile, (pct) => setImageUploadProgress(pct))
+        const altText = imageAlt.trim() || localImageFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+        handleInsertBlock(`![${altText}](${result.url})`)
+        toast.success('Image successfully uploaded and inserted!')
+        setShowImageModal(false)
+        setLocalImageFile(null)
+        setLocalImagePreview(null)
+        setImageAlt('')
+      } catch (err: any) {
+        toast.error(err.response?.data?.detail || 'Failed to upload image. Please try again.')
+      } finally {
+        setIsUploadingImage(false)
+        setImageUploadProgress(0)
+      }
+    } else {
+      if (!imageUrl.trim()) {
+        toast.error('Please enter an image URL.')
+        return
+      }
+      const altText = imageAlt.trim() || 'Technical Architecture Diagram'
+      handleInsertBlock(`![${altText}](${imageUrl.trim()})`)
+      setImageUrl('')
+      setImageAlt('')
+      setShowImageModal(false)
+      toast.success('Image integrated!')
+    }
   }
 
   const handleInsertCode = (e: React.FormEvent) => {
@@ -560,13 +643,96 @@ export function ChapterEditorPage() {
     toast.success(`${codeLanguage.toUpperCase()} code block inserted!`)
   }
 
-  const handleInsertVideo = (e: React.FormEvent) => {
+  const handleInsertVideo = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!videoUrl.trim()) return
-    handleInsertBlock(`[video:${videoUrl.trim()}]`)
-    setVideoUrl('')
-    setShowVideoModal(false)
-    toast.success('Video lecture embedded!')
+
+    if (videoSourceTab === 'local') {
+      if (!localVideoFile) {
+        toast.error('Please choose a video file from your computer.')
+        return
+      }
+
+      setIsUploadingVideo(true)
+      setVideoUploadProgress(0)
+      try {
+        const result = await uploadMediaFile(localVideoFile, (pct) => setVideoUploadProgress(pct))
+        handleInsertBlock(`[video:${result.url}]`)
+        toast.success('Video uploaded and embedded successfully!')
+        setShowVideoModal(false)
+        setLocalVideoFile(null)
+        setLocalVideoPreview(null)
+        setVideoTitle('')
+      } catch (err: any) {
+        toast.error(err.response?.data?.detail || 'Failed to upload video. Please try again.')
+      } finally {
+        setIsUploadingVideo(false)
+        setVideoUploadProgress(0)
+      }
+    } else {
+      if (!videoUrl.trim()) {
+        toast.error('Please enter a YouTube or direct Video URL.')
+        return
+      }
+      handleInsertBlock(`[video:${videoUrl.trim()}]`)
+      setVideoUrl('')
+      setVideoTitle('')
+      setShowVideoModal(false)
+      toast.success('Video lecture embedded!')
+    }
+  }
+
+  // Direct Clipboard Paste Listener (Ctrl+V with image file)
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          e.preventDefault()
+          toast.info('Uploading pasted image from clipboard...')
+          try {
+            const res = await uploadMediaFile(file)
+            handleInsertBlock(`![Pasted image](${res.url})`)
+            toast.success('Pasted image uploaded & inserted!')
+          } catch {
+            toast.error('Failed to upload pasted image.')
+          }
+          return
+        }
+      }
+    }
+  }
+
+  // Direct File Drop Listener (Drag and drop files directly onto editor)
+  const handleDrop = async (e: React.DragEvent<HTMLTextAreaElement>) => {
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      const file = files[0]
+      if (file.type.startsWith('image/')) {
+        e.preventDefault()
+        toast.info(`Uploading image: ${file.name}...`)
+        try {
+          const res = await uploadMediaFile(file)
+          handleInsertBlock(`![${file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')}](${res.url})`)
+          toast.success('Image uploaded & inserted!')
+        } catch {
+          toast.error('Failed to upload image.')
+        }
+      } else if (file.type.startsWith('video/')) {
+        e.preventDefault()
+        toast.info(`Uploading video: ${file.name}...`)
+        try {
+          const res = await uploadMediaFile(file)
+          handleInsertBlock(`[video:${res.url}]`)
+          toast.success('Video uploaded & embedded!')
+        } catch {
+          toast.error('Failed to upload video.')
+        }
+      }
+    }
   }
 
   const handleInsertWebsite = (e: React.FormEvent) => {
@@ -937,6 +1103,8 @@ export function ChapterEditorPage() {
                 onKeyDown={handleKeyDown}
                 onKeyUp={handleCursorActivity}
                 onClick={handleCursorActivity}
+                onPaste={handlePaste}
+                onDrop={handleDrop}
                 placeholder={`# 1. Clean Architecture & Boundaries\n\nWrite your concepts, explanations, architecture notes, and code here directly in Markdown...\n\n### Core Principles\n- Decouple domain core from external infrastructure\n- Enforce unidirectional dependencies\n\n### Code Demonstration\n\`\`\`csharp\npublic class CleanArchitecture\n{\n    // Domain logic core\n}\n\`\`\`\n`}
                 className={`flex-1 min-h-0 w-full p-4 sm:p-6 leading-relaxed bg-transparent text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none overflow-y-auto overflow-x-hidden editor-canvas selection:bg-indigo-500/20 ${
                   editorFont === 'mono'
@@ -1033,78 +1201,237 @@ export function ChapterEditorPage() {
       {/* MODAL 1: Insert Image Dialog */}
       {showImageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <ImageIcon className="h-5 w-5" />
-                Integrate Image / Diagram
+                <ImageIcon className="h-5 w-5 text-indigo-500" />
+                Insert Image or Diagram
               </h3>
               <button
                 type="button"
-                onClick={() => setShowImageModal(false)}
+                onClick={() => {
+                  setShowImageModal(false)
+                  setLocalImageFile(null)
+                  setLocalImagePreview(null)
+                  setImageUrl('')
+                }}
                 className="p-1 rounded-md text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Embed architecture diagrams, flowcharts, or system schematics via direct URL.
-            </p>
+
+            {/* Source Mode Tabs */}
+            <div className="grid grid-cols-2 p-1 bg-muted/60 rounded-lg border border-border text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setImageSourceTab('local')}
+                className={`py-1.5 px-3 rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  imageSourceTab === 'local'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <UploadCloud className="h-3.5 w-3.5 text-indigo-500" />
+                Upload from PC
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageSourceTab('url')}
+                className={`py-1.5 px-3 rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  imageSourceTab === 'url'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Globe className="h-3.5 w-3.5 text-sky-500" />
+                From Web URL
+              </button>
+            </div>
+
             <form onSubmit={handleInsertImage} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Image Direct URL
-                </label>
-                <Input
-                  placeholder="https://images.unsplash.com/photo-..."
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  required
-                />
-              </div>
+              {imageSourceTab === 'local' ? (
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    ref={imageFileInputRef}
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleSelectImageFile(e.target.files[0])
+                      }
+                    }}
+                  />
 
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Caption / Alt Description
-                </label>
-                <Input
-                  placeholder="e.g. Distributed Database Topology Diagram"
-                  value={imageAlt}
-                  onChange={(e) => setImageAlt(e.target.value)}
-                />
-              </div>
+                  {localImagePreview ? (
+                    <div className="rounded-xl border border-border p-3 bg-muted/20 space-y-2">
+                      <div className="relative group max-h-48 overflow-hidden rounded-lg bg-black/5 flex items-center justify-center">
+                        <img
+                          src={localImagePreview}
+                          alt="Local preview"
+                          className="max-h-44 object-contain rounded-md mx-auto"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLocalImageFile(null)
+                            setLocalImagePreview(null)
+                          }}
+                          className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 text-white hover:bg-rose-600 transition-colors cursor-pointer"
+                          title="Remove file"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                        <span className="truncate max-w-[240px] font-medium text-foreground">
+                          {localImageFile?.name}
+                        </span>
+                        <span className="font-mono text-[11px]">
+                          {localImageFile && (localImageFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => imageFileInputRef.current?.click()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                          handleSelectImageFile(e.dataTransfer.files[0])
+                        }
+                      }}
+                      className="border-2 border-dashed border-border/80 hover:border-indigo-500/80 bg-muted/20 hover:bg-muted/40 transition-all rounded-xl p-6 text-center cursor-pointer space-y-2 group"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                        <UploadCloud className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">
+                          Click to browse or drag & drop an image
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          PNG, JPG, WebP, SVG, GIF up to 25 MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-              {imageUrl && (
-                <div className="rounded-lg border border-border p-2 bg-muted/40 max-h-40 overflow-hidden">
-                  <p className="text-[10px] text-muted-foreground mb-1">Live Image Preview:</p>
-                  <img src={imageUrl} alt="preview" className="max-h-32 object-contain mx-auto rounded" />
+                  {/* Upload Progress Bar */}
+                  {isUploadingImage && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-medium">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Uploading image to server...
+                        </span>
+                        <span className="font-mono">{imageUploadProgress}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-600 transition-all duration-150 rounded-full"
+                          style={{ width: `${imageUploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      Caption / Alt Description (Optional)
+                    </label>
+                    <Input
+                      placeholder="e.g. Distributed Database Topology Diagram"
+                      value={imageAlt}
+                      onChange={(e) => setImageAlt(e.target.value)}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      Image Direct Web URL
+                    </label>
+                    <Input
+                      placeholder="https://images.unsplash.com/photo-..."
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      Caption / Alt Description
+                    </label>
+                    <Input
+                      placeholder="e.g. Database Index Architecture"
+                      value={imageAlt}
+                      onChange={(e) => setImageAlt(e.target.value)}
+                    />
+                  </div>
+
+                  {imageUrl && (
+                    <div className="rounded-lg border border-border p-2 bg-muted/40 max-h-40 overflow-hidden">
+                      <p className="text-[10px] text-muted-foreground mb-1">Live Image Preview:</p>
+                      <img src={imageUrl} alt="preview" className="max-h-32 object-contain mx-auto rounded" />
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground"
+                    onClick={() => {
+                      setImageUrl('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800')
+                      setImageAlt('Cloud Datacenter Infrastructure & Nodes')
+                    }}
+                  >
+                    <ImageIcon className="h-3 w-3 mr-1" /> Use Sample Diagram
+                  </Button>
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-border/60">
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-muted-foreground"
+                  variant="outline"
                   onClick={() => {
-                    setImageUrl('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800')
-                    setImageAlt('Cloud Datacenter Infrastructure & Nodes')
+                    setShowImageModal(false)
+                    setLocalImageFile(null)
+                    setLocalImagePreview(null)
+                    setImageUrl('')
                   }}
+                  disabled={isUploadingImage}
                 >
-                  <ImageIcon className="h-3 w-3 mr-1" /> Use Sample
+                  Cancel
                 </Button>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowImageModal(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Insert Image</Button>
-                </div>
+                <Button
+                  type="submit"
+                  disabled={
+                    isUploadingImage ||
+                    (imageSourceTab === 'local' && !localImageFile) ||
+                    (imageSourceTab === 'url' && !imageUrl.trim())
+                  }
+                  className="gap-1.5"
+                >
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : imageSourceTab === 'local' ? (
+                    <>
+                      <Upload className="h-3.5 w-3.5" />
+                      Upload & Insert
+                    </>
+                  ) : (
+                    'Insert Image'
+                  )}
+                </Button>
               </div>
             </form>
           </div>
@@ -1176,7 +1503,7 @@ export function ChapterEditorPage() {
       {/* MODAL 3: Insert Video Dialog */}
       {showVideoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                 <Film className="h-5 w-5 text-rose-500" />
@@ -1184,33 +1511,210 @@ export function ChapterEditorPage() {
               </h3>
               <button
                 type="button"
-                onClick={() => setShowVideoModal(false)}
+                onClick={() => {
+                  setShowVideoModal(false)
+                  setLocalVideoFile(null)
+                  setLocalVideoPreview(null)
+                  setVideoUrl('')
+                }}
                 className="p-1 rounded-md text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {/* Source Mode Tabs */}
+            <div className="grid grid-cols-2 p-1 bg-muted/60 rounded-lg border border-border text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setVideoSourceTab('local')}
+                className={`py-1.5 px-3 rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  videoSourceTab === 'local'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <UploadCloud className="h-3.5 w-3.5 text-rose-500" />
+                Upload from PC
+              </button>
+              <button
+                type="button"
+                onClick={() => setVideoSourceTab('url')}
+                className={`py-1.5 px-3 rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  videoSourceTab === 'url'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Film className="h-3.5 w-3.5 text-indigo-500" />
+                YouTube / URL
+              </button>
+            </div>
+
             <form onSubmit={handleInsertVideo} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  YouTube or Video URL
-                </label>
-                <Input
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
+              {videoSourceTab === 'local' ? (
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    ref={videoFileInputRef}
+                    accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleSelectVideoFile(e.target.files[0])
+                      }
+                    }}
+                  />
+
+                  {localVideoPreview ? (
+                    <div className="rounded-xl border border-border p-3 bg-muted/20 space-y-2">
+                      <div className="relative overflow-hidden rounded-lg bg-black">
+                        <video
+                          src={localVideoPreview}
+                          controls
+                          className="w-full max-h-52 object-contain rounded-md mx-auto"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLocalVideoFile(null)
+                            setLocalVideoPreview(null)
+                          }}
+                          className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 text-white hover:bg-rose-600 transition-colors cursor-pointer"
+                          title="Remove video file"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                        <span className="truncate max-w-[240px] font-medium text-foreground">
+                          {localVideoFile?.name}
+                        </span>
+                        <span className="font-mono text-[11px]">
+                          {localVideoFile && (localVideoFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => videoFileInputRef.current?.click()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                          handleSelectVideoFile(e.dataTransfer.files[0])
+                        }
+                      }}
+                      className="border-2 border-dashed border-border/80 hover:border-rose-500/80 bg-muted/20 hover:bg-muted/40 transition-all rounded-xl p-6 text-center cursor-pointer space-y-2 group"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                        <FileVideo className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">
+                          Click to browse or drag & drop a video file
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          MP4, WebM, MOV, MKV up to 150 MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload Progress Bar */}
+                  {isUploadingVideo && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Uploading video to storage...
+                        </span>
+                        <span className="font-mono">{videoUploadProgress}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-rose-600 transition-all duration-150 rounded-full"
+                          style={{ width: `${videoUploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      Lecture Title / Caption (Optional)
+                    </label>
+                    <Input
+                      placeholder="e.g. Distributed Consensus Algorithms Lecture"
+                      value={videoTitle}
+                      onChange={(e) => setVideoTitle(e.target.value)}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      YouTube or Direct Video URL
+                    </label>
+                    <Input
+                      placeholder="https://www.youtube.com/watch?v=... or https://.../video.mp4"
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground"
+                    onClick={() => {
+                      setVideoUrl('https://www.youtube.com/watch?v=yF9SwL0p0Y0')
+                    }}
+                  >
+                    <Play className="h-3 w-3 mr-1 text-rose-500" /> Use Sample YouTube Lecture
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border/60">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowVideoModal(false)}
+                  onClick={() => {
+                    setShowVideoModal(false)
+                    setLocalVideoFile(null)
+                    setLocalVideoPreview(null)
+                    setVideoUrl('')
+                  }}
+                  disabled={isUploadingVideo}
                 >
                   Cancel
                 </Button>
-                <Button type="submit">Embed Video</Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    isUploadingVideo ||
+                    (videoSourceTab === 'local' && !localVideoFile) ||
+                    (videoSourceTab === 'url' && !videoUrl.trim())
+                  }
+                  className="gap-1.5"
+                >
+                  {isUploadingVideo ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Uploading ({videoUploadProgress}%)...
+                    </>
+                  ) : videoSourceTab === 'local' ? (
+                    <>
+                      <Upload className="h-3.5 w-3.5" />
+                      Upload & Embed Video
+                    </>
+                  ) : (
+                    'Embed Video'
+                  )}
+                </Button>
               </div>
             </form>
           </div>

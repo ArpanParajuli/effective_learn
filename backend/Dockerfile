@@ -40,6 +40,9 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 # Copy published artifacts
 COPY --from=build /app/publish .
 
+# Create persistent uploads directory with ownership for unprivileged app user
+RUN mkdir -p /app/uploads && chown -R app:app /app/uploads
+
 # Run under the unprivileged 'app' user
 USER app
 

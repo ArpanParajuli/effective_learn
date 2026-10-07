@@ -15,6 +15,7 @@ export interface ChapterSummary {
   title: string
   slug: string
   summary: string
+  content?: string
   orderIndex: number
   estimatedMinutes: number
   isPublished: boolean
